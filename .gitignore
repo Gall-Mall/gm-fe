@@ -2,6 +2,9 @@ node_modules/
 dist/
 .vite-cache/
 .hermes/
+artifacts/
+docs/superpowers/
+scripts/visual-check.js
 *.log
 .env
 .env.local
