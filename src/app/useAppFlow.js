@@ -65,7 +65,7 @@ export function useAppFlow() {
   const [draft, setDraft] = useState({
     name: 'Osaka Foodies', destination: 'Osaka, Japan', dateMode: 'fixed',
     dateStart: '2024-10-12', dateEnd: '2024-10-18', dateCasual: '오늘',
-    members: 4, purpose: '먹방여행', invites: ['jimin@kakao.com', '수현'],
+    members: 4, purpose: '먹방여행',
     lat: 37.5665, lng: 126.978, distanceKm: 2, distanceMode: 'preset', distanceText: '2',
   });
 

@@ -8,7 +8,6 @@ export function CreateTripPage({ flow }) {
   const { goToStep, draft, setDraft } = flow;
   const [geoQuery, setGeoQuery] = useState('');
   const [geoStatus, setGeoStatus] = useState('idle');
-  const [inviteInput, setInviteInput] = useState('');
   const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
 
   async function search() {
@@ -34,19 +33,12 @@ export function CreateTripPage({ flow }) {
     if (addr) set({ destination: addr });
   }
 
-  function addInvite() {
-    const v = inviteInput.trim();
-    if (!v || draft.invites.includes(v)) { setInviteInput(''); return; }
-    set({ invites: [...draft.invites, v] });
-    setInviteInput('');
-  }
-
   return (
     <main className="screen page narrow">
       <header className="page-head col">
         <span className="tag">STEP 1 · 그룹 만들기</span>
         <h1>새 여행 그룹 만들기</h1>
-        <p className="muted">여행 정보를 채우고 친구들을 초대하면, 취향 입력과 맛집 투표를 바로 시작할 수 있어요.</p>
+        <p className="muted">여행 정보를 채워 그룹을 만들면, 초대 링크로 친구들을 불러 취향 입력과 맛집 투표를 시작할 수 있어요.</p>
       </header>
 
       <section className="card">
@@ -136,22 +128,6 @@ export function CreateTripPage({ flow }) {
               className={`text-input mini ${draft.distanceMode !== 'custom' ? 'locked' : ''}`} aria-label="반경 직접 입력 (0.5 단위, 최대 30km)" />
             <span className="muted-sm">km</span>
           </span>
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-title"><span className="card-icon"><Plus size={15} /></span><h2>멤버 초대</h2></div>
-        <p className="muted section-sub">이메일이나 닉네임으로 초대하거나, 초대 코드를 공유하세요.</p>
-        <div className="inline-row">
-          <input className="text-input" value={inviteInput} onChange={(e) => setInviteInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); addInvite(); } }}
-            placeholder="이메일 또는 닉네임 입력 후 Enter" />
-          <button type="button" className="button primary square" onClick={addInvite}><Plus size={17} /></button>
-        </div>
-        <div className="chip-wrap">
-          {draft.invites.map((inv, i) => (
-            <span className="ai-chip" key={inv}><span>{inv}</span><button type="button" aria-label="삭제" onClick={() => set({ invites: draft.invites.filter((_, j) => j !== i) })}>×</button></span>
-          ))}
         </div>
       </section>
 

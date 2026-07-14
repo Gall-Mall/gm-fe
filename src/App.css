@@ -98,7 +98,7 @@ a:hover { color: var(--ink); }
 .inline-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
 /* ---------- Buttons ---------- */
-.button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 18px; border: 0; border-radius: 9px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 18px; border: 0; border-radius: 9px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap; flex-shrink: 0; }
 .button.full { width: 100%; min-height: 48px; }
 .button.primary { background: var(--amber); color: var(--ink); }
 .button.ghost { background: #fff; color: var(--amber-deep); border: 1px solid rgba(120,86,20,.24); }
