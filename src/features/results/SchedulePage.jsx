@@ -1,41 +1,29 @@
-import { Home } from 'lucide-react';
-import { Button } from '../../components/Button';
+import { ClipboardList } from 'lucide-react';
 import { scheduleItems } from '../../data/appData';
 
-export function SchedulePage({ candidate, goToStep, voteCounts }) {
-  const finalScheduleItems = scheduleItems
-    .filter((item) => item.time === '19:30' || item.title !== candidate.name)
-    .map((item) =>
-      item.time === '19:30'
-        ? {
-            ...item,
-            title: candidate.name,
-            detail: `최종 투표 후보 · ${candidate.scheduleLabel} · 애매해 ${voteCounts.maybe}`,
-          }
-        : item,
-    );
-
+export function SchedulePage({ flow }) {
+  const { goToStep } = flow;
   return (
-    <main className="page schedule-page">
-      <div className="page-title-row">
-        <div>
-          <h1>날짜별 맛집 일정</h1>
-          <p>투표 결과가 하루 동선에 맞춰 정리되었습니다.</p>
+    <main className="screen page narrow">
+      <header className="page-head col">
+        <span className="tag">오늘의 일정</span>
+        <h1>정해진 식사 일정</h1>
+        <p className="muted">투표로 정한 식당을 시간대별로 정리했어요.</p>
+      </header>
+      <section className="card">
+        <div className="schedule">
+          {scheduleItems.map((s) => (
+            <article className="schedule-row" key={s.time}>
+              <time>{s.time}</time>
+              <div><h3>{s.title}</h3><p className="muted-sm">{s.detail}</p></div>
+            </article>
+          ))}
         </div>
-        <Button variant="outline" icon={Home} onClick={() => goToStep('home')}>메인으로</Button>
-      </div>
-      <section className="timeline-card">
-        <h2>Oct 12, 2024</h2>
-        {finalScheduleItems.map((item) => (
-          <article className="schedule-item" key={`${item.time}-${item.title}`}>
-            <time>{item.time}</time>
-            <div>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
-            </div>
-          </article>
-        ))}
       </section>
+      <div className="page-actions">
+        <button type="button" className="button ghost" onClick={() => goToStep('archive')}><ClipboardList size={16} /><span>지난 식사 보기</span></button>
+        <button type="button" className="button primary" onClick={() => goToStep('dashboard')}>대시보드로</button>
+      </div>
     </main>
   );
 }

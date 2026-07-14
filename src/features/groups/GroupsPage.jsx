@@ -1,45 +1,32 @@
-import { ChevronRight, Plus } from 'lucide-react';
-import { AvatarStack } from '../../components/AvatarStack';
-import { Button } from '../../components/Button';
+import { Plus, ChevronRight } from 'lucide-react';
 import { travelGroups } from '../../data/appData';
 
-export function GroupsPage({ goToStep, members }) {
+export function GroupsPage({ flow }) {
+  const { goToStep } = flow;
   return (
-    <main className="page groups-page">
-      <div className="page-title-row">
+    <main className="screen page narrow">
+      <header className="page-head">
         <div>
-          <h1>내 여행 그룹</h1>
-          <p>다가오는 여행의 맛집 후보와 멤버 취향 입력 상태를 확인하세요.</p>
+          <span className="tag">내 그룹</span>
+          <h1>진행 중인 여행</h1>
+          <p className="muted">함께 맛집을 정하고 있는 그룹이에요.</p>
         </div>
-        <Button icon={Plus} onClick={() => goToStep('create')}>새 그룹 만들기</Button>
-      </div>
-      <div className="groups-grid">
-        {travelGroups.map((group) => (
-          <button className="trip-card" key={group.name} onClick={() => goToStep('dashboard')} type="button">
-            <div className="trip-card-top">
-              <div>
-                <h2>{group.name}</h2>
-                <p>{group.city}</p>
-              </div>
-              <span>{group.status}</span>
+        <button type="button" className="button primary" onClick={() => goToStep('create')}>
+          <Plus size={17} /><span>새 그룹 만들기</span>
+        </button>
+      </header>
+      <div className="group-list">
+        {travelGroups.map((g) => (
+          <button type="button" className="card group-row" key={g.name} onClick={() => goToStep('dashboard')}>
+            <div>
+              <h2>{g.name}</h2>
+              <p className="muted">{g.city} · {g.date}</p>
+              <div className="progress-line"><span style={{ width: `${g.progress}%` }} /></div>
+              <p className="muted-sm">{g.status} · 취향 입력 {g.progress}% 완료</p>
             </div>
-            <strong>취향 입력 {group.progress}% 완료</strong>
-            <div className="progress-track">
-              <span style={{ width: `${group.progress}%` }} />
-            </div>
-            <div className="trip-card-bottom">
-              <AvatarStack members={members} compact />
-              <ChevronRight size={18} />
-            </div>
+            <ChevronRight size={20} className="muted" />
           </button>
         ))}
-        <button className="new-trip-card" onClick={() => goToStep('create')} type="button">
-          <span className="icon-tile">
-            <Plus size={18} />
-          </span>
-          <strong>새 여행 준비하기</strong>
-          <p>멤버를 초대하고 식당 후보를 함께 좁혀보세요.</p>
-        </button>
       </div>
     </main>
   );

@@ -1,90 +1,55 @@
-import { Header } from './components/Header';
 import { useAppFlow } from './app/useAppFlow';
-import { GroupAnalysisPage } from './features/analysis/GroupAnalysisPage';
+import { Header } from './components/Header';
+import { PrefsModal } from './components/PrefsModal';
+import { LandingPage } from './features/landing/LandingPage';
 import { LoginPage } from './features/auth/LoginPage';
+import { InvitePage } from './features/auth/InvitePage';
+import { OnboardingPage } from './features/onboarding/OnboardingPage';
+import { GroupsPage } from './features/groups/GroupsPage';
 import { CreateTripPage } from './features/groups/CreateTripPage';
 import { DashboardPage } from './features/groups/DashboardPage';
-import { GroupsPage } from './features/groups/GroupsPage';
-import { LandingPage } from './features/landing/LandingPage';
-import { RecommendationVotePage } from './features/recommendation/RecommendationVotePage';
-import { SchedulePage } from './features/results/SchedulePage';
+import { GroupSettingsPage } from './features/groups/GroupSettingsPage';
+import { MenuVotePage } from './features/recommendation/MenuVotePage';
+import { VoteDonePage } from './features/recommendation/VoteDonePage';
+import { FinalListPage } from './features/recommendation/FinalListPage';
+import { RestaurantSearchPage } from './features/recommendation/RestaurantSearchPage';
 import { VoteResultsPage } from './features/results/VoteResultsPage';
-import { PersonalResultPage } from './features/taste/PersonalResultPage';
-import { TasteSurveyPage } from './features/taste/TasteSurveyPage';
+import { SchedulePage } from './features/results/SchedulePage';
+import { ArchivePage } from './features/archive/ArchivePage';
+import { MealDetailPage } from './features/archive/MealDetailPage';
+
+const FULL_BLEED = ['login', 'invite', 'onboarding'];
 
 function App() {
-  const {
-    activeStep,
-    copied,
-    goToStep,
-    group,
-    handleCopy,
-    handleCreate,
-    handleScheduleCandidate,
-    handleSelectCandidate,
-    handleTasteSubmit,
-    handleVote,
-    lastVote,
-    lastVoteChange,
-    members,
-    recommendationCandidates,
-    resultCandidate,
-    resultVoteCounts,
-    scheduledCandidate,
-    scheduledVoteCounts,
-    selectedCandidate,
-    selectedCandidateId,
-    selectedVariant,
-    selectedVoteCounts,
-    setSelectedVariant,
-  } = useAppFlow();
+  const flow = useAppFlow();
+  const { step } = flow;
 
-  const contentByStep = {
-    home: <LandingPage goToStep={goToStep} members={members} />,
-    login: <LoginPage goToStep={goToStep} />,
-    groups: <GroupsPage goToStep={goToStep} members={members} />,
-    create: <CreateTripPage goToStep={goToStep} onCreate={handleCreate} />,
-    dashboard: (
-      <DashboardPage
-        copied={copied}
-        goToStep={goToStep}
-        group={group}
-        members={members}
-        onCopy={handleCopy}
-      />
-    ),
-    taste: <TasteSurveyPage onSubmitTaste={handleTasteSubmit} />,
-    profile: <PersonalResultPage goToStep={goToStep} />,
-    analysis: <GroupAnalysisPage goToStep={goToStep} />,
-    recommend: (
-      <RecommendationVotePage
-        candidates={recommendationCandidates}
-        onSelectCandidate={handleSelectCandidate}
-        onVote={handleVote}
-        selectedCandidate={selectedCandidate}
-        selectedCandidateId={selectedCandidateId}
-        voteCounts={selectedVoteCounts}
-      />
-    ),
-    result: (
-      <VoteResultsPage
-        alternateCandidates={recommendationCandidates.filter((candidate) => candidate.id !== resultCandidate.id)}
-        candidate={resultCandidate}
-        lastVote={lastVote}
-        lastVoteChange={lastVoteChange}
-        onSchedule={handleScheduleCandidate}
-        selectedVariant={selectedVariant}
-        setSelectedVariant={setSelectedVariant}
-        voteCounts={resultVoteCounts}
-      />
-    ),
-    schedule: <SchedulePage candidate={scheduledCandidate} goToStep={goToStep} voteCounts={scheduledVoteCounts} />,
+  const pages = {
+    login: <LoginPage flow={flow} />,
+    invite: <InvitePage flow={flow} />,
+    onboarding: <OnboardingPage flow={flow} />,
+    home: <LandingPage flow={flow} />,
+    groups: <GroupsPage flow={flow} />,
+    create: <CreateTripPage flow={flow} />,
+    dashboard: <DashboardPage flow={flow} />,
+    groupsettings: <GroupSettingsPage flow={flow} />,
+    recommend: <MenuVotePage flow={flow} />,
+    votedone: <VoteDonePage flow={flow} />,
+    finallist: <FinalListPage flow={flow} />,
+    restsearch: <RestaurantSearchPage flow={flow} />,
+    result: <VoteResultsPage flow={flow} />,
+    schedule: <SchedulePage flow={flow} />,
+    archive: <ArchivePage flow={flow} />,
+    mealdetail: <MealDetailPage flow={flow} />,
   };
+
+  const isApp = !FULL_BLEED.includes(step);
 
   return (
     <div className="app">
-      <Header activeStep={activeStep} goToStep={goToStep} />
-      {contentByStep[activeStep]}
+      {isApp ? <Header flow={flow} /> : null}
+      {pages[step] || pages.login}
+      {flow.prefsOpen ? <PrefsModal flow={flow} /> : null}
     </div>
   );
 }
