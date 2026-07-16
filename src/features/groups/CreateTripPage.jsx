@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, Crosshair, Minus, Plus, MapPin, CircleCheck } from 'lucide-react';
 import { purposeOptions } from '../../data/appData';
-import { LeafletMap } from '../../components/LeafletMap';
+import { KakaoMap } from '../../components/KakaoMap';
 import { normDistance, geocodePlace, reverseGeocode } from '../../utils/geo';
 
 export function CreateTripPage({ flow }) {
@@ -60,7 +60,7 @@ export function CreateTripPage({ flow }) {
               </button>
             </div>
             {geoStatus === 'error' ? <p className="error-text">장소를 찾지 못했어요. 다른 이름으로 검색해보세요.</p> : null}
-            <LeafletMap center={{ lat: draft.lat, lng: draft.lng }} onPick={onPick} />
+            <KakaoMap center={{ lat: draft.lat, lng: draft.lng }} onPick={onPick} />
             <div className="inline-between">
               <span className="muted-sm">핀을 드래그하거나 지도를 눌러 위치를 조정하세요</span>
               <button type="button" className="chip" onClick={() => set({ lat: 37.5665, lng: 126.978 })}><Crosshair size={13} /> 현재 위치</button>

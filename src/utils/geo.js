@@ -1,3 +1,5 @@
+import { ensureKakao } from './kakaoLoader';
+
 // 0.5 단위로 스냅하고 0.5~30km 범위로 보정
 export function normDistance(raw) {
   let n = parseFloat(raw);
@@ -7,27 +9,36 @@ export function normDistance(raw) {
   return n;
 }
 
-// OpenStreetMap Nominatim 정방향 지오코딩 (예: "선릉역")
+// 카카오 키워드 장소 검색 (예: "선릉역", "강남역")
 export async function geocodePlace(query) {
-  const r = await fetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=ko&limit=1`,
-  );
-  const j = await r.json();
-  if (Array.isArray(j) && j.length) {
-    return { lat: +parseFloat(j[0].lat).toFixed(6), lng: +parseFloat(j[0].lon).toFixed(6) };
-  }
-  return null;
+  const kakao = await ensureKakao();
+  return new Promise((resolve) => {
+    const ps = new kakao.maps.services.Places();
+    ps.keywordSearch(query, (data, status) => {
+      if (status === kakao.maps.services.Status.OK && data.length) {
+        // x=경도(lng), y=위도(lat)
+        resolve({ lat: +(+data[0].y).toFixed(6), lng: +(+data[0].x).toFixed(6) });
+      } else {
+        resolve(null);
+      }
+    });
+  });
 }
 
-// 역방향 지오코딩 → 짧은 주소 문자열
+// 좌표 → 짧은 주소 (도로명 우선, 없으면 지번)
 export async function reverseGeocode(lat, lng) {
-  const r = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko&zoom=16`,
-  );
-  const j = await r.json();
-  if (j && j.display_name) {
-    const addr = j.display_name.split(',').map((x) => x.trim()).filter(Boolean).reverse().slice(1, 4).join(' ');
-    return addr || j.display_name;
-  }
-  return null;
+  const kakao = await ensureKakao();
+  return new Promise((resolve) => {
+    const geocoder = new kakao.maps.services.Geocoder();
+    // coord2Address(경도, 위도) 순서 주의
+    geocoder.coord2Address(lng, lat, (result, status) => {
+      if (status === kakao.maps.services.Status.OK && result.length) {
+        const road = result[0].road_address && result[0].road_address.address_name;
+        const jibun = result[0].address && result[0].address.address_name;
+        resolve(road || jibun || null);
+      } else {
+        resolve(null);
+      }
+    });
+  });
 }
