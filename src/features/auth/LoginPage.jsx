@@ -27,9 +27,6 @@ export function LoginPage({ flow }) {
             <p className="login-note">그룹에 참여하려면 로그인이 필요해요. 로그인하면 바로 참여돼요.</p>
           ) : null}
           <button type="button" className="link-btn" onClick={() => goToStep('home')}>먼저 둘러볼래요</button>
-          <button type="button" className="demo-btn" onClick={() => goToStep('invite')}>
-            데모: 초대 링크로 참가 화면 보기
-          </button>
           <small className="fineprint">계속하면 이용약관·개인정보 처리방침에 동의합니다.</small>
         </div>
       </div>

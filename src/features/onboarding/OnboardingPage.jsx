@@ -101,7 +101,7 @@ export function OnboardingPage({ flow }) {
             <>
               <h1>못 먹는 음식이 있나요?</h1>
               <p className="section-hint">카테고리는 좋아해도 특정 메뉴만 빼고 싶을 수 있죠. 카테고리를 열어 <strong>싫어하는 메뉴만</strong> 골라주세요.</p>
-              <MenuAccordion selected={dislikeMenus} onToggle={(k) => toggle(dislikeMenus, setDislikeMenus, k)} countWord="제외" />
+              <MenuAccordion selected={dislikeMenus} onToggle={(k) => toggle(dislikeMenus, setDislikeMenus, k)} countWord="제외" blocked={likeMenus} />
               <AiAnalyzeField kind="dislike" items={aiExclusions} setItems={setAiExclusions} analyzeText={analyzeText}
                 placeholder="못 먹는 음식을 문장으로 입력" hint={'예) "고수 들어간 음식", "느끼한 건 못 먹어요" — AI가 분석해 제외 항목으로 저장해요.'} />
             </>
@@ -111,7 +111,7 @@ export function OnboardingPage({ flow }) {
             <>
               <h1>좋아하는 음식을 알려주세요</h1>
               <p className="section-hint">자주 끌리는 메뉴를 골라두면 추천이 더 정확해져요. 카테고리를 열어 <strong>좋아하는 메뉴</strong>를 선택하세요.</p>
-              <MenuAccordion selected={likeMenus} onToggle={(k) => toggle(likeMenus, setLikeMenus, k)} countWord="선택" />
+              <MenuAccordion selected={likeMenus} onToggle={(k) => toggle(likeMenus, setLikeMenus, k)} countWord="선택" blocked={dislikeMenus} />
               <AiAnalyzeField kind="like" items={aiLikes} setItems={setAiLikes} analyzeText={analyzeText}
                 placeholder="좋아하는 음식을 문장으로 입력" hint={'예) "매콤한 국물 좋아해요", "든든한 고기 요리" — AI가 분석해 취향으로 저장해요.'} />
             </>

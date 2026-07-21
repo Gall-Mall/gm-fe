@@ -54,7 +54,7 @@ export function PrefsModal({ flow }) {
           {prefsTab === 'dislike' ? (
             <>
               <p className="section-hint">카테고리를 열어 <strong>싫어하는 메뉴만</strong> 골라주세요.</p>
-              <MenuAccordion selected={dislikeMenus} onToggle={(k) => toggle(dislikeMenus, setDislikeMenus, k)} countWord="제외" />
+              <MenuAccordion selected={dislikeMenus} onToggle={(k) => toggle(dislikeMenus, setDislikeMenus, k)} countWord="제외" blocked={likeMenus} />
               <AiAnalyzeField kind="dislike" items={aiExclusions} setItems={setAiExclusions} analyzeText={analyzeText}
                 placeholder="못 먹는 음식을 문장으로 입력" hint={'예) "고수 들어간 음식", "느끼한 건 못 먹어요" — AI가 분석해 제외 항목으로 저장해요.'} />
             </>
@@ -62,7 +62,7 @@ export function PrefsModal({ flow }) {
           {prefsTab === 'like' ? (
             <>
               <p className="section-hint">카테고리를 열어 <strong>좋아하는 메뉴</strong>를 골라주세요. 추천에서 우선 노출돼요.</p>
-              <MenuAccordion selected={likeMenus} onToggle={(k) => toggle(likeMenus, setLikeMenus, k)} countWord="선택" />
+              <MenuAccordion selected={likeMenus} onToggle={(k) => toggle(likeMenus, setLikeMenus, k)} countWord="선택" blocked={dislikeMenus} />
               <AiAnalyzeField kind="like" items={aiLikes} setItems={setAiLikes} analyzeText={analyzeText}
                 placeholder="좋아하는 음식을 문장으로 입력" hint={'예) "매콤한 국물 좋아해요", "든든한 고기 요리" — AI가 분석해 취향으로 저장해요.'} />
             </>

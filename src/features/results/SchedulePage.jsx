@@ -1,8 +1,9 @@
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, CircleCheck } from 'lucide-react';
 import { scheduleItems } from '../../data/appData';
 
 export function SchedulePage({ flow }) {
-  const { goToStep } = flow;
+  const { goToStep, savedSchedule } = flow;
+
   return (
     <main className="screen page narrow">
       <header className="page-head col">
@@ -10,7 +11,23 @@ export function SchedulePage({ flow }) {
         <h1>정해진 식사 일정</h1>
         <p className="muted">투표로 정한 식당을 시간대별로 정리했어요.</p>
       </header>
+
+      {savedSchedule ? (
+        <section className="card saved-schedule">
+          <span className="saved-badge"><CircleCheck size={15} /> 방금 확정됨</span>
+          <div className="schedule-row lead">
+            <time>{savedSchedule.time}</time>
+            <div>
+              <h3>{savedSchedule.name}</h3>
+              <p className="muted-sm">{savedSchedule.detail}</p>
+              {savedSchedule.menu ? <p className="muted-sm">선택 메뉴 · {savedSchedule.menu}</p> : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="card">
+        <h2 className="section-sub-title">전체 일정</h2>
         <div className="schedule">
           {scheduleItems.map((s) => (
             <article className="schedule-row" key={s.time}>
@@ -20,6 +37,7 @@ export function SchedulePage({ flow }) {
           ))}
         </div>
       </section>
+
       <div className="page-actions">
         <button type="button" className="button ghost" onClick={() => goToStep('archive')}><ClipboardList size={16} /><span>지난 식사 보기</span></button>
         <button type="button" className="button primary" onClick={() => goToStep('dashboard')}>대시보드로</button>

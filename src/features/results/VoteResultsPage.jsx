@@ -1,54 +1,82 @@
-import { CalendarPlus } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarPlus, MapPin, Check, Clock } from 'lucide-react';
 import { recommendationCandidates } from '../../data/appData';
-import { voteLabelByChoice } from '../../utils/vote';
+import { voteLabelByChoice, voteChoices } from '../../utils/vote';
 
 export function VoteResultsPage({ flow }) {
-  const { selectedId, restaurantVotes, goToStep } = flow;
-  const cand = recommendationCandidates.find((c) => c.id === selectedId) || recommendationCandidates[0];
-  const v = restaurantVotes[cand.id];
-  const total = v.like + v.maybe + v.dislike;
-  const others = recommendationCandidates.filter((c) => c.id !== cand.id);
+  const { gset, groupRestaurants, restaurantVotes, confirmSchedule, isHost } = flow;
+
+  const [finalRestId, setFinalRestId] = useState(groupRestaurants[0] || null);
+  const [time, setTime] = useState(gset.recTime || '18:00');
+
+  const pool = groupRestaurants.length
+    ? recommendationCandidates.filter((c) => groupRestaurants.includes(c.id))
+    : recommendationCandidates;
+
+  const ranked = [...pool]
+    .map((c) => {
+      const v = restaurantVotes[c.id] || { like: 0, maybe: 0, dislike: 0 };
+      return { ...c, v, total: v.like + v.maybe + v.dislike };
+    })
+    .sort((a, b) => b.v.like - a.v.like || b.score - a.score);
+
+  const finalRest = ranked.find((c) => c.id === finalRestId) || null;
 
   return (
     <main className="screen page narrow">
       <header className="page-head col">
-        <span className="tag">투표 결과</span>
-        <h1>{cand.name}</h1>
-        <p className="muted">{cand.city} · {cand.meta}</p>
+        <span className="tag">방장 · 최종 식당 선택</span>
+        <h1>어디로 갈래요?</h1>
+        <p className="muted">
+          {isHost ? '식당을 하나 선택하고 시간을 정해 일정에 저장해요.' : '방장이 최종 식당을 고르는 중이에요.'}
+        </p>
       </header>
 
-      <section className="card">
-        <div className="result-media" style={{ backgroundImage: `url(${cand.image})` }}>
-          <div className="vote-media-overlay" />
-          <strong className="vote-score">{cand.score}%</strong>
-        </div>
-        <div className="inline-between result-top"><span className="muted-sm">그룹 적합도</span><strong className="accent">{cand.score}% 일치</strong></div>
-        <div className="progress-line"><span style={{ width: `${cand.score}%` }} /></div>
-        <div className="tally">
-          {['like', 'maybe', 'dislike'].map((k) => (
-            <span key={k} className={`tally-${k}`}>{voteLabelByChoice[k]} {v[k]}</span>
-          ))}
-        </div>
-        <p className="muted-sm">총 {total}명이 투표했어요.</p>
-        <div className="reason-grid">
-          <section className="reason-box"><h3>추천 이유</h3><ul>{cand.reasons.map((r) => <li key={r}>{r}</li>)}</ul></section>
-          <section className="caution-box"><h3>확인할 점</h3><ul>{cand.cautions.map((c) => <li key={c}>{c}</li>)}</ul></section>
-        </div>
-        <button type="button" className="button primary full" onClick={() => goToStep('schedule')}><CalendarPlus size={16} /><span>일정에 추가하기</span></button>
-      </section>
-
-      <section className="card">
-        <h2>다른 후보</h2>
-        <div className="alt-list">
-          {others.map((c) => (
-            <button type="button" className="alt-row" key={c.id} onClick={() => { flow.setSelectedId(c.id); }}>
+      <div className="candidate-two">
+        {ranked.map((c) => {
+          const selected = finalRestId === c.id;
+          const inner = (
+            <>
               <div className="rest-thumb sm" style={{ backgroundImage: `url(${c.image})` }} />
-              <div className="final-info"><strong>{c.name}</strong><small className="muted-sm">{c.meta}</small></div>
-              <em className="accent">{c.score}%</em>
+              <div className="candidate-info">
+                <div className="final-name">
+                  <strong>{c.name}</strong>
+                  {selected ? <span className="candidate-check"><Check size={15} /></span> : <em className="accent">{c.score}%</em>}
+                </div>
+                <small className="muted-sm"><MapPin size={12} /> {c.city} · {c.meta}</small>
+                <div className="tally">
+                  {voteChoices.map((k) => <span key={k} className={`tally-${k}`}>{voteLabelByChoice[k]} {c.v[k]}</span>)}
+                </div>
+              </div>
+            </>
+          );
+          if (!isHost) return <div className="candidate-card readonly" key={c.id}>{inner}</div>;
+          return (
+            <button type="button" key={c.id} className={`candidate-card ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => setFinalRestId(c.id)}>
+              {inner}
             </button>
-          ))}
-        </div>
-      </section>
+          );
+        })}
+      </div>
+
+      {isHost ? (
+        <>
+          <section className="card">
+            <label className="field">
+              <span className="field-label"><Clock size={13} /> 식사 시간</span>
+              <input type="time" className="text-input" value={time} onChange={(e) => setTime(e.target.value)} />
+            </label>
+          </section>
+          <div className="page-actions">
+            <span className="muted-sm">{finalRest ? `${finalRest.name} · ${time}` : '식당을 선택해주세요'}</span>
+            <button type="button" className="button primary" disabled={!finalRestId} onClick={() => confirmSchedule(finalRestId, time)}>
+              <CalendarPlus size={16} /><span>이 시간으로 일정 저장</span>
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="waiting-box"><span className="waiting-spinner" aria-hidden="true" /><span>방장이 최종 식당을 정하고 있어요</span></div>
+      )}
     </main>
   );
 }

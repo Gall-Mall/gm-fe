@@ -1,8 +1,7 @@
-import { Plus, ChevronRight } from 'lucide-react';
-import { travelGroups } from '../../data/appData';
+import { Plus, ChevronRight, Users } from 'lucide-react';
 
 export function GroupsPage({ flow }) {
-  const { goToStep } = flow;
+  const { goToStep, groups } = flow;
   return (
     <main className="screen page narrow">
       <header className="page-head">
@@ -15,19 +14,29 @@ export function GroupsPage({ flow }) {
           <Plus size={17} /><span>새 그룹 만들기</span>
         </button>
       </header>
-      <div className="group-list">
-        {travelGroups.map((g) => (
-          <button type="button" className="card group-row" key={g.name} onClick={() => goToStep('dashboard')}>
-            <div>
-              <h2>{g.name}</h2>
-              <p className="muted">{g.city} · {g.date}</p>
-              <div className="progress-line"><span style={{ width: `${g.progress}%` }} /></div>
-              <p className="muted-sm">{g.status} · 취향 입력 {g.progress}% 완료</p>
-            </div>
-            <ChevronRight size={20} className="muted" />
-          </button>
-        ))}
-      </div>
+
+      {groups.length === 0 ? (
+        <div className="empty-state">
+          <span className="empty-icon"><Users size={26} /></span>
+          <h2>아직 그룹이 없어요</h2>
+          <p className="muted">새 여행 그룹을 만들어 친구들과 맛집을 정해보세요.</p>
+          <button type="button" className="button primary" onClick={() => goToStep('create')}><Plus size={17} /><span>새 그룹 만들기</span></button>
+        </div>
+      ) : (
+        <div className="group-list">
+          {groups.map((g) => (
+            <button type="button" className="card group-row" key={g.name} onClick={() => goToStep('dashboard')}>
+              <div>
+                <div className="final-name"><h2>{g.name}</h2>{g.isMine ? <em className="badge">내가 만든</em> : null}</div>
+                <p className="muted">{g.city} · {g.date}</p>
+                <div className="progress-line"><span style={{ width: `${g.progress}%` }} /></div>
+                <p className="muted-sm">{g.status} · 취향 입력 {g.progress}% 완료</p>
+              </div>
+              <ChevronRight size={20} className="muted" />
+            </button>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

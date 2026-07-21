@@ -11,7 +11,8 @@ import { DashboardPage } from './features/groups/DashboardPage';
 import { GroupSettingsPage } from './features/groups/GroupSettingsPage';
 import { MenuVotePage } from './features/recommendation/MenuVotePage';
 import { VoteDonePage } from './features/recommendation/VoteDonePage';
-import { FinalListPage } from './features/recommendation/FinalListPage';
+import { RoundResultPage } from './features/recommendation/RoundResultPage';
+import { MenuConfirmedPage } from './features/recommendation/MenuConfirmedPage';
 import { RestaurantSearchPage } from './features/recommendation/RestaurantSearchPage';
 import { VoteResultsPage } from './features/results/VoteResultsPage';
 import { SchedulePage } from './features/results/SchedulePage';
@@ -35,7 +36,8 @@ function App() {
     groupsettings: <GroupSettingsPage flow={flow} />,
     recommend: <MenuVotePage flow={flow} />,
     votedone: <VoteDonePage flow={flow} />,
-    finallist: <FinalListPage flow={flow} />,
+    roundresult: <RoundResultPage flow={flow} />,
+    menuconfirmed: <MenuConfirmedPage flow={flow} />,
     restsearch: <RestaurantSearchPage flow={flow} />,
     result: <VoteResultsPage flow={flow} />,
     schedule: <SchedulePage flow={flow} />,

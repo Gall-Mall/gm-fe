@@ -1,14 +1,12 @@
 import { Bell, Check, ChevronRight } from 'lucide-react';
 
 export function VoteDonePage({ flow }) {
-  const { goToStep, members, simAllVoted, setSimAllVoted, myMenuVote, menus } = flow;
-  // 데모: '나' 포함 + simAllVoted로 나머지 완료 처리
-  const voteMembers = [
-    { name: '지민', done: true },
-    { name: '수현', done: true },
-    { name: '민재', done: simAllVoted },
-    { name: '나', done: true },
-  ];
+  const { goToStep, members, simAllVoted, setSimAllVoted, allMenusVoted, isHost, roundNumber } = flow;
+  // 내 완료 = 모든 메뉴 투표 완료. 다른 멤버는 방장이 마감(simAllVoted)하면 완료 처리.
+  const voteMembers = members.map((m) => ({
+    name: m.name,
+    done: m.id === 'me' ? allMenusVoted : simAllVoted,
+  }));
   const doneCount = voteMembers.filter((m) => m.done).length;
   const allDone = doneCount === voteMembers.length;
 
@@ -22,9 +20,10 @@ export function VoteDonePage({ flow }) {
       ) : null}
       <section className="card done-card">
         <span className="done-check"><Check size={34} /></span>
+        <span className="pill soft">{roundNumber}차 메뉴 투표</span>
         <h1>투표가 완료되었어요</h1>
         <p className="muted">
-          {allDone ? '그룹 전원이 투표를 마쳤어요. 최종 메뉴 목록을 확인하세요.' : '내 투표가 저장됐어요. 다른 멤버들이 투표를 마치면 알림으로 알려드릴게요.'}
+          {allDone ? '그룹 전원이 투표를 마쳤어요. 라운드 결과를 확인하세요.' : '내 투표가 저장됐어요. 다른 멤버들이 투표를 마치면 알림으로 알려드릴게요.'}
         </p>
         <div className="done-status">
           <div className="inline-between"><strong>멤버 투표 현황</strong><em className="accent">{doneCount}/{voteMembers.length}명 완료</em></div>
@@ -39,11 +38,13 @@ export function VoteDonePage({ flow }) {
           </div>
         </div>
         {allDone ? (
-          <button type="button" className="button primary full" onClick={() => goToStep('finallist')}>최종 메뉴 목록 보기<ChevronRight size={17} /></button>
+          <button type="button" className="button primary full" onClick={() => goToStep('roundresult')}>라운드 결과 보기<ChevronRight size={17} /></button>
         ) : (
           <>
             <div className="waiting"><span className="dot" />다른 멤버들의 투표를 기다리고 있어요</div>
-            <button type="button" className="demo-btn" onClick={() => setSimAllVoted(true)}>데모: 나머지 멤버 투표 완료 처리</button>
+            {isHost ? (
+              <button type="button" className="button ghost full" onClick={() => setSimAllVoted(true)}>남은 멤버 투표 마감하기 (방장)</button>
+            ) : null}
           </>
         )}
       </section>

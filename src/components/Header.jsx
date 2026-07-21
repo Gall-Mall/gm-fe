@@ -1,9 +1,16 @@
-import { Bell, Search, Camera, LogOut, Settings } from 'lucide-react';
+import { Bell, Search, Camera, LogOut, Settings, Home, Users, ClipboardList } from 'lucide-react';
 
 const navItems = [
   { label: '홈', step: 'home' },
   { label: '내 그룹', step: 'groups' },
   { label: '지난 식사', step: 'archive' },
+];
+
+const bottomNav = [
+  { label: '홈', step: 'home', icon: Home },
+  { label: '내 그룹', step: 'groups', icon: Users },
+  { label: '대시보드', step: 'dashboard', icon: Bell },
+  { label: '지난 식사', step: 'archive', icon: ClipboardList },
 ];
 
 export function Header({ flow }) {
@@ -21,6 +28,7 @@ export function Header({ flow }) {
   const isArchive = step === 'archive' || step === 'mealdetail';
 
   return (
+    <>
     <header className="site-header">
       <button className="brand-mark" type="button" onClick={() => goToStep('home')}>
         <span>갈래말래</span>
@@ -77,5 +85,18 @@ export function Header({ flow }) {
         </div>
       </div>
     </header>
+    <nav className="bottom-nav" aria-label="하단 메뉴">
+      {bottomNav.map((item) => {
+        const active = item.step === 'archive' ? isArchive : step === item.step;
+        const Icon = item.icon;
+        return (
+          <button key={item.step} type="button" className={active ? 'active' : ''} onClick={() => goToStep(item.step)}>
+            <Icon size={20} aria-hidden="true" />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+    </>
   );
 }

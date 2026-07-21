@@ -44,6 +44,9 @@ export function AiAnalyzeField({ kind, placeholder, hint, items, setItems, analy
         </button>
       </div>
       {status === 'error' ? <p className="error-text">분석에 실패했어요. 잠시 후 다시 시도해주세요.</p> : null}
+      {kind === 'allergy' ? (
+        <p className="ai-field-caution">⚠ 표준 22종 외 알레르기 성분은 메뉴 정보에 따라 필터가 100% 보장되지 않을 수 있어요. 주문 시 성분을 다시 한 번 확인해주세요.</p>
+      ) : null}
       {items.length > 0 ? (
         <div className={`ai-chips ${tone}`}>
           {items.map((it, i) => (
