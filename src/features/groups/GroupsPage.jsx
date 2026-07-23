@@ -7,8 +7,8 @@ export function GroupsPage({ flow }) {
       <header className="page-head">
         <div>
           <span className="tag">내 그룹</span>
-          <h1>진행 중인 여행</h1>
-          <p className="muted">함께 맛집을 정하고 있는 그룹이에요.</p>
+          <h1>진행 중인 모임</h1>
+          <p className="muted">함께 맛집을 정하고 있는 모임이에요.</p>
         </div>
         <button type="button" className="button primary" onClick={() => goToStep('create')}>
           <Plus size={17} /><span>새 그룹 만들기</span>
@@ -19,7 +19,7 @@ export function GroupsPage({ flow }) {
         <div className="empty-state">
           <span className="empty-icon"><Users size={26} /></span>
           <h2>아직 그룹이 없어요</h2>
-          <p className="muted">새 여행 그룹을 만들어 친구들과 맛집을 정해보세요.</p>
+          <p className="muted">새 모임을 만들어 친구들과 맛집을 정해보세요.</p>
           <button type="button" className="button primary" onClick={() => goToStep('create')}><Plus size={17} /><span>새 그룹 만들기</span></button>
         </div>
       ) : (

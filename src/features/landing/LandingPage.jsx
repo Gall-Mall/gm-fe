@@ -8,7 +8,7 @@ export function LandingPage({ flow }) {
       <section className="hero-band">
         <span className="tag">🍽 갈래? 말래? 애매하긴해?</span>
         <h1 className="hero-title">안녕하세요, {profile.name}님<br />오늘은 어디로 갈래요?</h1>
-        <p className="hero-lead">친구들의 입맛과 조건을 한 번에 모아, 모두가 납득하는 맛집을 카드 투표로 정해요. 새 여행 그룹을 만들어 시작해보세요.</p>
+        <p className="hero-lead">친구들의 입맛과 조건을 한 번에 모아, 모두가 납득하는 맛집을 카드 투표로 정해요. 새 모임을 만들어 시작해보세요.</p>
         <button type="button" className="button primary" onClick={() => goToStep('create')}>
           <Plus size={17} /><span>새 그룹 만들기</span>
         </button>
@@ -17,7 +17,7 @@ export function LandingPage({ flow }) {
       {top ? (
         <section className="card ongoing">
           <div className="ongoing-head">
-            <span className="muted-sm">진행 중인 여행</span>
+            <span className="muted-sm">진행 중인 모임</span>
             <button type="button" className="link-btn" onClick={() => goToStep('dashboard')}>이어서 보기<ChevronRight size={15} /></button>
           </div>
           <h2>{top.name}</h2>
@@ -33,13 +33,13 @@ export function LandingPage({ flow }) {
       <section className="quick-grid">
         <button type="button" className="card quick" onClick={() => goToStep('create')}>
           <span className="quick-icon"><Plus size={18} /></span>
-          <h3>새 여행 준비하기</h3>
-          <p className="muted-sm">이름과 목적지만 정하면 그룹이 만들어지고, 초대 링크로 친구를 부를 수 있어요.</p>
+          <h3>새 모임 준비하기</h3>
+          <p className="muted-sm">이름과 장소만 정하면 그룹이 만들어지고, 초대 링크로 친구를 부를 수 있어요.</p>
         </button>
         <button type="button" className="card quick" onClick={() => goToStep('groups')}>
           <span className="quick-icon"><Users size={18} /></span>
           <h3>내 그룹</h3>
-          <p className="muted-sm">진행 중인 여행 {groups.length}개</p>
+          <p className="muted-sm">진행 중인 모임 {groups.length}개</p>
         </button>
         <button type="button" className="card quick" onClick={() => goToStep('archive')}>
           <span className="quick-icon"><ClipboardList size={18} /></span>

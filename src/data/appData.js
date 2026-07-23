@@ -1,28 +1,28 @@
 import cafeImage from '../assets/cafe-card.png';
 import okonomiyakiImage from '../assets/okonomiyaki-card.png';
-import osakaHero from '../assets/osaka-hero.png';
+import heroImage from '../assets/hero.png';
 
-export { cafeImage, okonomiyakiImage, osakaHero };
+export { cafeImage, okonomiyakiImage, heroImage };
 
 export const defaultGroup = {
-  name: '오사카 푸디스',
-  city: '오사카',
-  date: '10월 12일 ~ 10월 18일',
+  name: '강남 점심 모임',
+  city: '강남',
+  date: '오늘 저녁',
   inviteCode: 'GALM24',
   readiness: 75,
-  purpose: '먹방여행',
-  lat: 37.5665,
-  lng: 126.978,
+  purpose: '친구 모임',
+  lat: 37.4979,
+  lng: 127.0276,
   recTime: '18:00',
   distanceKm: 2,
 };
 
-export const travelGroups = [
-  { name: '오사카 푸디스', city: '오사카', date: '10월 12일 ~ 10월 18일', progress: 75, status: '4일 중 3일차' },
-  { name: '서울 주말 모임', city: '서울', date: '11월 2일 ~ 11월 4일', progress: 54, status: '2일 중 1일차' },
+export const seedGroups = [
+  { name: '강남 점심 모임', city: '강남', date: '오늘 저녁', progress: 75, status: '투표 진행 중' },
+  { name: '홍대 저녁 모임', city: '홍대', date: '이번 주 금요일', progress: 54, status: '준비 중' },
 ];
 
-export const purposeOptions = ['먹방여행', '카페 투어', '로컬 탐방', '휴식 여행', '쇼핑'];
+export const purposeOptions = ['친구 모임', '회식', '데이트', '가족 식사', '기념일'];
 
 // 식약처 표시대상 알레르기 유발물질 22종
 export const allergenOptions = [
@@ -99,25 +99,25 @@ export const menus = [
 // 식당 후보 (지도 투표 단계)
 export const recommendationCandidates = [
   {
-    id: 'trattoria-bella', name: '트라토리아 벨라', city: '오사카 난바', category: '이탈리안', score: 88,
-    distance: '도보 12분', meta: '파스타 · 단체석', scheduleLabel: '파스타', image: cafeImage,
+    id: 'pasta-brothers', name: '파스타 브라더스', city: '강남역', category: '이탈리안', score: 88,
+    distance: '도보 5분', meta: '파스타 · 단체석', scheduleLabel: '파스타', image: cafeImage,
     votes: { like: 3, maybe: 1, dislike: 0 }, geo: { dLat: 0.0035, dLng: 0.0042 },
-    reasons: ['민재님의 유제품 제한을 피할 수 있는 메뉴가 있어요.', '지민님이 선호한 차분한 저녁 분위기와 잘 맞아요.', '수현님이 저장한 카페 거리와 같은 동선에 있어요.'],
-    cautions: ['피크 시간에는 20-30분 정도 기다릴 수 있어요.', '근처 주차가 어려워 도보 이동을 추천해요.'],
+    reasons: ['민재님의 유제품 제한을 피할 수 있는 메뉴가 있어요.', '지민님이 선호한 차분한 저녁 분위기와 잘 맞아요.', '단체석이 있어 모임에 좋아요.'],
+    cautions: ['피크 시간에는 20-30분 정도 기다릴 수 있어요.', '근처 주차가 어려워 대중교통을 추천해요.'],
   },
   {
-    id: 'wad-omotenashi-cafe', name: '와드 오모테나시 카페', city: '오사카 난바', category: '카페', score: 85,
+    id: 'antique-coffee', name: '앤티크 커피', city: '역삼동', category: '카페', score: 85,
     distance: '도보 8분', meta: '감성 카페 · 조용한 좌석', scheduleLabel: '감성 카페', image: cafeImage,
     votes: { like: 2, maybe: 1, dislike: 1 }, geo: { dLat: -0.0026, dLng: -0.0031 },
-    reasons: ['수현님이 저장한 카페 거리와 같은 동선에 있어요.', '오후 일정 피로를 줄이기 좋은 조용한 분위기예요.', '식사 후 바로 이동하기 쉬운 난바 중심 후보예요.'],
-    cautions: ['식사보다는 디저트와 휴식에 가까워요.', '4명 모두 앉을 좌석은 방문 시간에 따라 달라질 수 있어요.'],
+    reasons: ['수현님이 좋아하는 조용한 분위기예요.', '식사 후 가볍게 이야기 나누기 좋아요.', '디저트·커피 중심이라 부담이 적어요.'],
+    cautions: ['식사보다는 디저트와 커피에 가까워요.', '4명 모두 앉을 좌석은 방문 시간에 따라 달라질 수 있어요.'],
   },
   {
-    id: 'mizuno-okonomiyaki', name: '미즈노 오코노미야키', city: '오사카 도톤보리', category: '일식', score: 92,
-    distance: '도보 15분', meta: '오코노미야키 · 로컬 맛집', scheduleLabel: '로컬 맛집', image: okonomiyakiImage,
+    id: 'izakaya-haru', name: '이자카야 하루', city: '강남역', category: '일식', score: 92,
+    distance: '도보 10분', meta: '이자카야 · 로컬 인기', scheduleLabel: '로컬 맛집', image: okonomiyakiImage,
     votes: { like: 3, maybe: 0, dislike: 1 }, geo: { dLat: 0.0016, dLng: 0.0058 },
-    reasons: ['그룹 전체가 면 요리와 현지 음식을 선호해요.', '첫날 저녁 동선에서 크게 벗어나지 않아요.', '현지 음식 경험을 원하는 멤버에게 가장 잘 맞아요.'],
-    cautions: ['웨이팅이 길면 다음 일정이 밀릴 수 있어요.', '철판 좌석이라 조용한 분위기는 아니에요.'],
+    reasons: ['그룹 전체가 면·구이 요리를 선호해요.', '회식 자리로 무난한 인기 맛집이에요.', '메뉴가 다양해 취향을 맞추기 좋아요.'],
+    cautions: ['웨이팅이 길면 예약을 추천해요.', '좌석이 활기찬 편이라 조용하진 않아요.'],
   },
 ];
 
@@ -130,26 +130,27 @@ export const groupMembersSeed = [
   { id: 'minjae', name: '민재', email: 'minjae@kakao.com', role: 'member' },
 ];
 
+// 다가오는 모임 (일정 화면 예시)
 export const scheduleItems = [
-  { time: '12:30', title: '미즈노 오코노미야키', detail: '첫날 점심 · 도톤보리 · 그룹 적합도 92%' },
-  { time: '16:00', title: '와드 오모테나시 카페', detail: '오후 휴식 · 난바 · 감성 카페' },
-  { time: '19:30', title: 'Trattoria Bella', detail: '저녁 투표 후보 · 단체석 예약 가능' },
+  { time: '오늘 18:30', title: '이자카야 하루', detail: '강남 점심 모임 · 강남역 · 그룹 적합도 92%' },
+  { time: '내일 12:30', title: '파스타 브라더스', detail: '점심 번개 · 강남역 · 단체석 예약 가능' },
+  { time: '금요일 19:00', title: '홍대 저녁 모임', detail: '장소 투표 진행 중' },
 ];
 
 export const archiveGroups = [
   {
-    group: '오사카 푸디스', city: '오사카', period: '10월 12일 ~ 18일',
+    group: '강남 점심 모임', city: '강남', period: '지난 모임',
     meals: [
-      { dateLabel: '10.12', when: '첫날 점심', place: '미즈노 오코노미야키', city: '도톤보리', tag: '로컬 맛집', img: okonomiyakiImage, score: 92, like: 3, maybe: 0, dislike: 1, note: '그룹 전원이 현지 음식을 원해서 만장일치에 가깝게 정해졌어요.' },
-      { dateLabel: '10.13', when: '저녁', place: 'Trattoria Bella', city: '난바', tag: '파스타', img: cafeImage, score: 88, like: 3, maybe: 1, dislike: 0, note: '단체석과 차분한 분위기 덕에 저녁 자리로 딱 맞았어요.' },
-      { dateLabel: '10.14', when: '오후 휴식', place: '와드 오모테나시 카페', city: '난바', tag: '감성 카페', img: cafeImage, score: 85, like: 2, maybe: 1, dislike: 1, note: '디저트·휴식 중심이라 반응이 조금 갈렸지만 여유로웠어요.' },
+      { dateLabel: '06.12', when: '점심', place: '이자카야 하루', city: '강남역', tag: '로컬 맛집', img: okonomiyakiImage, score: 92, like: 3, maybe: 0, dislike: 1, note: '그룹 전원이 인기 맛집을 원해서 만장일치에 가깝게 정해졌어요.' },
+      { dateLabel: '06.19', when: '저녁', place: '파스타 브라더스', city: '강남역', tag: '파스타', img: cafeImage, score: 88, like: 3, maybe: 1, dislike: 0, note: '단체석과 차분한 분위기 덕에 저녁 자리로 딱 맞았어요.' },
+      { dateLabel: '06.26', when: '오후', place: '앤티크 커피', city: '역삼동', tag: '감성 카페', img: cafeImage, score: 85, like: 2, maybe: 1, dislike: 1, note: '디저트·커피 중심이라 반응이 조금 갈렸지만 여유로웠어요.' },
     ],
   },
   {
-    group: '서울 주말 모임', city: '서울', period: '11월 2일 ~ 4일',
+    group: '홍대 저녁 모임', city: '홍대', period: '지난 모임',
     meals: [
-      { dateLabel: '11.02', when: '첫날 저녁', place: '을지로 노가리 골목', city: '을지로', tag: '로컬 펍', img: okonomiyakiImage, score: 90, like: 4, maybe: 0, dislike: 0, note: '가볍게 한잔하며 이야기 나누기 좋아 전원 만족했어요.' },
-      { dateLabel: '11.03', when: '점심', place: '성수 브런치 하우스', city: '성수동', tag: '브런치', img: cafeImage, score: 82, like: 2, maybe: 2, dislike: 0, note: '웨이팅이 있었지만 분위기와 커피가 좋아 반응이 나쁘지 않았어요.' },
+      { dateLabel: '05.02', when: '저녁', place: '을지로 노가리 골목', city: '을지로', tag: '로컬 펍', img: okonomiyakiImage, score: 90, like: 4, maybe: 0, dislike: 0, note: '가볍게 한잔하며 이야기 나누기 좋아 전원 만족했어요.' },
+      { dateLabel: '05.09', when: '점심', place: '성수 브런치 하우스', city: '성수동', tag: '브런치', img: cafeImage, score: 82, like: 2, maybe: 2, dislike: 0, note: '웨이팅이 있었지만 분위기와 커피가 좋아 반응이 나쁘지 않았어요.' },
     ],
   },
 ];

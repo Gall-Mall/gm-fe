@@ -8,7 +8,7 @@ export function ArchivePage({ flow }) {
         <div>
           <span className="tag">그룹별 기록</span>
           <h1>지난 식사 모아보기</h1>
-          <p className="muted">여행 그룹별로 함께 결정하고 다녀온 식사들을 모았어요.</p>
+          <p className="muted">모임별로 함께 결정하고 다녀온 식사들을 모았어요.</p>
         </div>
         <button type="button" className="button primary" onClick={() => goToStep('create')}><Plus size={17} /><span>새 그룹 만들기</span></button>
       </div>

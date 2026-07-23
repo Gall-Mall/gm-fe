@@ -7,7 +7,7 @@ function flow(overrides = {}) {
     goToStep: vi.fn(),
     members: [{ id: 'member-1', name: '나', role: 'host' }],
     isHost: true,
-    gset: { name: 'Osaka Foodies', location: 'Osaka' },
+    gset: { name: '강남 점심 모임', location: '강남' },
     voteLimitMin: 60,
     setVoteLimitMin: vi.fn(),
     startVote: vi.fn(),

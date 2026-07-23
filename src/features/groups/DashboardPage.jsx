@@ -23,7 +23,7 @@ export function DashboardPage({ flow }) {
     <main className="screen page narrow">
       <header className="page-head col">
         <span className="tag">{gset.name}</span>
-        <h1>여행 준비 현황</h1>
+        <h1>모임 준비 현황</h1>
         <p className="muted">{gset.location} · 취향 입력을 모으고 투표를 시작해요.</p>
       </header>
 

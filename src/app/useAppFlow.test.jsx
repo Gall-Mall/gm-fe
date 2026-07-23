@@ -31,7 +31,7 @@ describe('useAppFlow 투표 시작', () => {
     });
 
     expect(createVoteSession).toHaveBeenCalledWith('group-1', {
-      title: '오사카 푸디스 메뉴 투표',
+      title: '강남 점심 모임 메뉴 투표',
       likeKeyword: '매콤한',
       dislikeKeyword: null,
     });

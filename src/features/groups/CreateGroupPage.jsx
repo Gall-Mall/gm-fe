@@ -4,7 +4,7 @@ import { purposeOptions } from '../../data/appData';
 import { KakaoMap } from '../../components/KakaoMap';
 import { normDistance, geocodePlace, reverseGeocode } from '../../utils/geo';
 
-export function CreateTripPage({ flow }) {
+export function CreateGroupPage({ flow }) {
   const { goToStep, draft, setDraft, createGroup } = flow;
   const canCreate = (draft.name || '').trim().length > 0;
   const [geoQuery, setGeoQuery] = useState('');
@@ -38,8 +38,8 @@ export function CreateTripPage({ flow }) {
     <main className="screen page narrow">
       <header className="page-head col">
         <span className="tag">STEP 1 · 그룹 만들기</span>
-        <h1>새 여행 그룹 만들기</h1>
-        <p className="muted">여행 정보를 채워 그룹을 만들면, 초대 링크로 친구들을 불러 취향 입력과 맛집 투표를 시작할 수 있어요.</p>
+        <h1>새 모임 만들기</h1>
+        <p className="muted">모임 정보를 채워 그룹을 만들면, 초대 링크로 친구들을 불러 취향 입력과 맛집 투표를 시작할 수 있어요.</p>
       </header>
 
       <section className="card">
@@ -47,11 +47,11 @@ export function CreateTripPage({ flow }) {
         <div className="form-grid">
           <label className="field">
             <span className="field-label">그룹 이름</span>
-            <input className="text-input" value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="예) 오사카 먹방 원정대" />
+            <input className="text-input" value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="예) 강남 점심 모임" />
           </label>
 
           <div className="field">
-            <span className="field-label">여행지 · 지도에서 위치 선택</span>
+            <span className="field-label">장소 · 지도에서 위치 선택</span>
             <div className="inline-row">
               <input className="text-input" value={geoQuery} onChange={(e) => setGeoQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); search(); } }}
@@ -70,17 +70,13 @@ export function CreateTripPage({ flow }) {
           </div>
 
           <div className="field">
-            <span className="field-label">여행 날짜</span>
+            <span className="field-label">모임 날짜</span>
             <div className="seg">
               <button type="button" className={draft.dateMode === 'fixed' ? 'on' : ''} onClick={() => set({ dateMode: 'fixed' })}>날짜 지정</button>
               <button type="button" className={draft.dateMode === 'casual' ? 'on' : ''} onClick={() => set({ dateMode: 'casual' })}>날짜 없이</button>
             </div>
             {draft.dateMode === 'fixed' ? (
-              <div className="inline-row wrap">
-                <input type="date" className="text-input" value={draft.dateStart} onChange={(e) => set({ dateStart: e.target.value })} />
-                <span className="tilde">~</span>
-                <input type="date" className="text-input" value={draft.dateEnd} onChange={(e) => set({ dateEnd: e.target.value })} />
-              </div>
+              <input type="date" className="text-input" value={draft.dateStart} onChange={(e) => set({ dateStart: e.target.value })} />
             ) : (
               <div className="chip-wrap">
                 {['오늘', '내일', '이번 주말', '미정'].map((c) => (
@@ -102,7 +98,7 @@ export function CreateTripPage({ flow }) {
       </section>
 
       <section className="card">
-        <div className="card-title"><span className="card-icon"><CircleCheck size={15} /></span><h2>여행 목적</h2></div>
+        <div className="card-title"><span className="card-icon"><CircleCheck size={15} /></span><h2>모임 성격</h2></div>
         <p className="muted section-sub">추천 알고리즘이 그룹 성향을 잡는 데 참고해요.</p>
         <div className="chip-wrap">
           {purposeOptions.map((p) => (

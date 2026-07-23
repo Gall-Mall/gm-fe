@@ -6,7 +6,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { InvitePage } from './features/auth/InvitePage';
 import { OnboardingPage } from './features/onboarding/OnboardingPage';
 import { GroupsPage } from './features/groups/GroupsPage';
-import { CreateTripPage } from './features/groups/CreateTripPage';
+import { CreateGroupPage } from './features/groups/CreateGroupPage';
 import { DashboardPage } from './features/groups/DashboardPage';
 import { GroupSettingsPage } from './features/groups/GroupSettingsPage';
 import { MenuVotePage } from './features/recommendation/MenuVotePage';
@@ -31,7 +31,7 @@ function App() {
     onboarding: <OnboardingPage flow={flow} />,
     home: <LandingPage flow={flow} />,
     groups: <GroupsPage flow={flow} />,
-    create: <CreateTripPage flow={flow} />,
+    create: <CreateGroupPage flow={flow} />,
     dashboard: <DashboardPage flow={flow} />,
     groupsettings: <GroupSettingsPage flow={flow} />,
     recommend: <MenuVotePage flow={flow} />,

@@ -5,7 +5,7 @@ import {
   groupMembersSeed,
   menus,
   recommendationCandidates,
-  travelGroups,
+  seedGroups,
   voteCandidate,
 } from '../data/appData';
 import { createVoteSession } from '../services/voteSessionApi';
@@ -47,7 +47,7 @@ const initialRestaurantVotes = Object.fromEntries(recommendationCandidates.map((
 const freshVoteCounts = () => Object.fromEntries(menus.map((m) => [m.id, { ...m.votes }]));
 const freshRestaurantVotes = () => Object.fromEntries(recommendationCandidates.map((c) => [c.id, { ...c.votes }]));
 
-const STORAGE_KEY = 'galae-state-v3';
+const STORAGE_KEY = 'galae-state-v4';
 
 function loadState() {
   if (typeof window === 'undefined') return {};
@@ -67,10 +67,10 @@ function readInviteCode() {
 }
 
 const defaultDraft = {
-  name: '', destination: '오사카', dateMode: 'fixed',
+  name: '', destination: '강남', dateMode: 'fixed',
   dateStart: '', dateEnd: '', dateCasual: '오늘',
-  members: 4, purpose: '먹방여행',
-  lat: 37.5665, lng: 126.978, distanceKm: 2, distanceMode: 'preset', distanceText: '2',
+  members: 4, purpose: '친구 모임',
+  lat: 37.4979, lng: 127.0276, distanceKm: 2, distanceMode: 'preset', distanceText: '2',
 };
 
 const defaultGset = {
@@ -113,7 +113,7 @@ export function useAppFlow() {
   const [members, setMembers] = useState(saved.members || groupMembersSeed);
   const [isHost, setIsHost] = useState(saved.isHost ?? true);
   const [gset, setGset] = useState(saved.gset || defaultGset);
-  const [groups, setGroups] = useState(saved.groups || travelGroups);
+  const [groups, setGroups] = useState(saved.groups || seedGroups);
 
   // 투표
   const [voteLimitMin, setVoteLimitMin] = useState(saved.voteLimitMin ?? 60);
@@ -271,11 +271,9 @@ export function useAppFlow() {
       lng: draft.lng,
     }));
     const dateLabel =
-      draft.dateMode === 'fixed' && draft.dateStart && draft.dateEnd
-        ? `${draft.dateStart} ~ ${draft.dateEnd}`
-        : draft.dateMode === 'fixed'
-          ? '날짜 미정'
-          : draft.dateCasual || '날짜 미정';
+      draft.dateMode === 'fixed'
+        ? draft.dateStart || '날짜 미정'
+        : draft.dateCasual || '날짜 미정';
     const entry = { name, city: location, date: dateLabel, progress: 0, status: '준비 중', isMine: true };
     setGroups((cur) => [entry, ...cur.filter((x) => x.name !== name)]);
     // 새 그룹은 투표/식당/일정 상태를 깨끗하게 시작

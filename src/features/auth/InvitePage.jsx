@@ -1,5 +1,5 @@
 import { MapPin, Clock, Unlink } from 'lucide-react';
-import { osakaHero, defaultGroup } from '../../data/appData';
+import { heroImage, defaultGroup } from '../../data/appData';
 
 export function InvitePage({ flow }) {
   const { gset, members, joinGroup, goToStep, inviteCode } = flow;
@@ -40,7 +40,7 @@ export function InvitePage({ flow }) {
           <strong>갈래말래</strong>
         </div>
         <div className="invite-card">
-          <div className="invite-hero" style={{ backgroundImage: `url(${osakaHero})` }}>
+          <div className="invite-hero" style={{ backgroundImage: `url(${heroImage})` }}>
             <div className="invite-hero-overlay" />
             <span className="invite-hero-text">
               <small>초대장이 도착했어요</small>
