@@ -8,6 +8,9 @@ import {
   travelGroups,
   voteCandidate,
 } from '../data/appData';
+import { createVoteSession } from '../services/voteSessionApi';
+import { createAndSubscribeVoteSession } from '../services/voteSessionFlow';
+import { subscribeVoteSession } from '../services/voteSessionSocket';
 
 // AI 분석: window.claude가 있으면 사용, 없으면 간단 폴백
 async function analyzeText(kind, text) {
@@ -144,9 +147,18 @@ export function useAppFlow() {
   const [selectedMeal, setSelectedMeal] = useState(null);
 
   const [copied, setCopied] = useState('idle');
+  const [voteSessionId, setVoteSessionId] = useState(null);
+  const [voteStartStatus, setVoteStartStatus] = useState('idle');
+  const [voteStartError, setVoteStartError] = useState('');
+  const [lastVoteSessionEvent, setLastVoteSessionEvent] = useState(null);
 
   const tick = useRef(null);
+  const voteSessionConnection = useRef(null);
   const [, setNow] = useState(Date.now());
+
+  useEffect(() => () => {
+    voteSessionConnection.current?.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = document.scrollingElement || document.documentElement;
@@ -210,6 +222,11 @@ export function useAppFlow() {
   }
 
   function logout() {
+    voteSessionConnection.current?.disconnect();
+    voteSessionConnection.current = null;
+    setVoteSessionId(null);
+    setVoteStartStatus('idle');
+    setVoteStartError('');
     setProfileOpen(false);
     setLoggedIn(false);
     setStep('login');
@@ -282,22 +299,58 @@ export function useAppFlow() {
     setStep('dashboard');
   }
 
-  function startVote() {
-    // 새 투표는 항상 깨끗한 상태에서 시작 (이전 세션 투표가 남아 10/10으로 뜨는 문제 방지)
-    setVoteStartedAt(Date.now());
-    setMenuVotes(freshVoteCounts());
-    setMyMenuVote({});
-    setCurrentMenuIdx(0);
-    setSimAllVoted(false);
-    setRoundIds(buildRoundIds([], []));
-    setPastRoundIds([]);
-    setCandidateIds([]);
-    setDecisionChoices({});
-    setDecisionClosed(false);
-    setConfirmedMenuId(null);
-    setDecisionMethod(null);
-    setSelectedFinalMenuId(null);
-    setStep('recommend');
+  async function startVote() {
+    if (voteStartStatus === 'creating' || voteStartStatus === 'connecting') return;
+
+    const groupId = import.meta.env.VITE_ACTIVE_GROUP_ID;
+    if (!groupId) {
+      setVoteStartStatus('failed');
+      setVoteStartError('VITE_ACTIVE_GROUP_ID 설정이 필요합니다.');
+      return;
+    }
+
+    setVoteStartStatus('creating');
+    setVoteStartError('');
+    try {
+      const { connection } = await createAndSubscribeVoteSession({
+        groupId,
+        request: {
+          title: `${gset.name} 메뉴 투표`,
+          likeKeyword: voteKeywords.join(', ') || null,
+          dislikeKeyword: null,
+        },
+        onSessionCreated: (session) => {
+          setVoteSessionId(session.voteSessionId);
+          setVoteStartStatus('connecting');
+        },
+        onEvent: setLastVoteSessionEvent,
+        createVoteSession,
+        subscribeVoteSession,
+      });
+
+      voteSessionConnection.current?.disconnect();
+      voteSessionConnection.current = connection;
+      setVoteStartStatus('connected');
+
+      // 최신 main의 투표 초기화·라운드 흐름은 그대로 유지한다.
+      setVoteStartedAt(Date.now());
+      setMenuVotes(freshVoteCounts());
+      setMyMenuVote({});
+      setCurrentMenuIdx(0);
+      setSimAllVoted(false);
+      setRoundIds(buildRoundIds([], []));
+      setPastRoundIds([]);
+      setCandidateIds([]);
+      setDecisionChoices({});
+      setDecisionClosed(false);
+      setConfirmedMenuId(null);
+      setDecisionMethod(null);
+      setSelectedFinalMenuId(null);
+      setStep('recommend');
+    } catch (error) {
+      setVoteStartStatus('failed');
+      setVoteStartError(error instanceof Error ? error.message : '투표 시작에 실패했습니다.');
+    }
   }
   // 마음에 안 들면: 지난 라운드는 보관하고 새 10개로 다시 투표
   function newRound() {
@@ -640,6 +693,7 @@ export function useAppFlow() {
     members, isHost, setIsHost, delegateHost, kickMember,
     gset, setGset, groups,
     voteLimitMin, setVoteLimitMin, voteStartedAt, startVote, remainMs, voteClosed,
+    voteSessionId, voteStartStatus, voteStartError, lastVoteSessionEvent,
     voteKeywords, addVoteKeyword, removeVoteKeyword,
     menus: recMenus, excludedMenus, menuVotes, myMenuVote, currentMenuIdx, setCurrentMenuIdx, voteMenu,
     votedCount, allMenusVoted,

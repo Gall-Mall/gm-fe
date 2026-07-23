@@ -43,7 +43,9 @@ a:hover { color: var(--ink); }
   border-bottom: 1px solid rgba(120,86,20,.12);
   background: rgba(255,254,250,.92); backdrop-filter: blur(18px);
 }
-.brand-mark { justify-self: start; border: 0; background: transparent; cursor: pointer; color: var(--amber-deep); font-size: 16px; font-weight: 800; white-space: nowrap; }
+.brand-mark { justify-self: start; display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; cursor: pointer; color: var(--amber-deep); font-size: 16px; font-weight: 800; white-space: nowrap; }
+.brand-logo { display: block; width: 42px; height: 42px; flex: none; border-radius: 12px; object-fit: cover; }
+.brand-mark .brand-logo { width: 38px; height: 38px; border-radius: 11px; }
 .brand-mark span { white-space: nowrap; }
 .top-nav { display: flex; align-items: center; gap: 22px; }
 .top-nav button { border: 0; background: transparent; cursor: pointer; color: var(--slate); font-size: 14px; font-weight: 700; padding: 6px 0; }
@@ -162,7 +164,7 @@ a:hover { color: var(--ink); }
 .login-inner { display: grid; grid-template-columns: 1fr 400px; align-items: center; gap: 40px; max-width: 1120px; margin: 0 auto; min-height: 100vh; padding: 40px 48px; }
 .brand-inline { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
 .brand-inline.center { justify-content: center; }
-.brand-badge { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--amber-deep); color: #fff; font-weight: 900; }
+
 .brand-inline strong { color: var(--amber-deep); font-size: 16px; white-space: nowrap; }
 .login-title { margin: 0; font-size: 52px; font-weight: 900; line-height: 1.06; letter-spacing: -.03em; color: var(--ink); text-wrap: balance; }
 .login-lead { max-width: 400px; margin: 20px 0 28px; font-size: 17px; line-height: 1.55; color: var(--slate); }

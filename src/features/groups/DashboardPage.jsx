@@ -7,10 +7,17 @@ export function DashboardPage({ flow }) {
     goToStep, members, isHost, gset,
     voteLimitMin, setVoteLimitMin, startVote,
     voteKeywords, addVoteKeyword, removeVoteKeyword,
+    voteStartStatus, voteStartError,
     copied, handleCopy,
   } = flow;
   const [kw, setKw] = useState('');
   const limitLabel = voteLimitMin >= 60 ? `${voteLimitMin / 60}시간` : `${voteLimitMin}분`;
+  const voteStarting = voteStartStatus === 'creating' || voteStartStatus === 'connecting';
+  const voteStartLabel = voteStartStatus === 'creating'
+    ? '투표방 만드는 중...'
+    : voteStartStatus === 'connecting'
+      ? 'WebSocket 연결 중...'
+      : `투표 시작하기 (${limitLabel})`;
 
   return (
     <main className="screen page narrow">
@@ -68,7 +75,10 @@ export function DashboardPage({ flow }) {
                   ))}
                 </div>
               ) : null}
-              <button type="button" className="button primary full" onClick={startVote}><Play size={16} /><span>투표 시작하기 ({limitLabel})</span></button>
+              {voteStartError ? <p className="muted-sm" role="alert">{voteStartError}</p> : null}
+              <button type="button" className="button primary full" onClick={startVote} disabled={voteStarting}>
+                <Play size={16} /><span>{voteStartLabel}</span>
+              </button>
             </div>
             <div className="inline-row wrap gap">
               <button type="button" className="button ghost" onClick={() => goToStep('archive')}><ClipboardList size={16} /><span>지난 식사 모아보기</span></button>

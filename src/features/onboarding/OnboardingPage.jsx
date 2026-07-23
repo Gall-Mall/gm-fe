@@ -44,7 +44,7 @@ export function OnboardingPage({ flow }) {
   return (
     <div className="screen onboarding-screen">
       <div className="onboarding-inner">
-        <div className="brand-inline"><span className="brand-badge">갈</span><strong>갈래말래</strong></div>
+        <div className="brand-inline"><img className="brand-logo" src="/gallae-mallae-logo.png" alt="" /><strong>갈래말래</strong></div>
 
         <div className="step-progress">
           {STEPS.map((s) => {

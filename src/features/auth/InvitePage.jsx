@@ -12,7 +12,7 @@ export function InvitePage({ flow }) {
       <div className="screen invite-screen">
         <div className="invite-inner">
           <div className="brand-inline center">
-            <span className="brand-badge">갈</span>
+            <img className="brand-logo" src="/gallae-mallae-logo.png" alt="" />
             <strong>갈래말래</strong>
           </div>
           <div className="invite-card">
@@ -36,7 +36,7 @@ export function InvitePage({ flow }) {
     <div className="screen invite-screen">
       <div className="invite-inner">
         <div className="brand-inline center">
-          <span className="brand-badge">갈</span>
+          <img className="brand-logo" src="/gallae-mallae-logo.png" alt="" />
           <strong>갈래말래</strong>
         </div>
         <div className="invite-card">

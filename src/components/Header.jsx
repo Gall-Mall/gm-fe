@@ -31,6 +31,7 @@ export function Header({ flow }) {
     <>
     <header className="site-header">
       <button className="brand-mark" type="button" onClick={() => goToStep('home')}>
+        <img className="brand-logo" src="/gallae-mallae-logo.png" alt="" />
         <span>갈래말래</span>
       </button>
       <nav className="top-nav" aria-label="주요 메뉴">

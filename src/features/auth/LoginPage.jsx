@@ -5,7 +5,7 @@ export function LoginPage({ flow }) {
       <div className="login-inner">
         <div className="login-hero">
           <div className="brand-inline">
-            <span className="brand-badge">갈</span>
+            <img className="brand-logo" src="/gallae-mallae-logo.png" alt="" />
             <strong>갈래말래</strong>
           </div>
           <h1 className="login-title">갈래? 말래?<br />애매하긴해?</h1>
