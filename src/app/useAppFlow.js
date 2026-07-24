@@ -11,6 +11,7 @@ import {
 import { createVoteSession } from '../services/voteSessionApi';
 import { createAndSubscribeVoteSession } from '../services/voteSessionFlow';
 import { subscribeVoteSession } from '../services/voteSessionSocket';
+import { logout as logoutApi } from '../services/authApi';
 
 // AI 분석: window.claude가 있으면 사용, 없으면 간단 폴백
 async function analyzeText(kind, text) {
@@ -252,6 +253,8 @@ export function useAppFlow() {
   }
 
   function logout() {
+    // 서버 세션 종료는 best-effort (실패해도 로컬 로그아웃은 진행)
+    logoutApi().catch(() => {});
     voteSessionConnection.current?.disconnect();
     voteSessionConnection.current = null;
     setVoteSessionId(null);
