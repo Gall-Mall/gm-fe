@@ -66,6 +66,16 @@ function readInviteCode() {
   return m ? m[1] : null;
 }
 
+// OAuth 로그인 성공 후 백엔드가 회원 상태에 따라 보내는 랜딩 경로.
+// ONBOARDING → /onboarding, ACTIVE 등 → /home. 그 외 경로는 null.
+function readOAuthLanding() {
+  if (typeof window === 'undefined') return null;
+  const path = window.location.pathname;
+  if (path.startsWith('/onboarding')) return 'onboarding';
+  if (path.startsWith('/home')) return 'home';
+  return null;
+}
+
 const defaultDraft = {
   name: '', destination: '강남', dateMode: 'fixed',
   dateStart: '', dateEnd: '', dateCasual: '오늘',
@@ -82,13 +92,33 @@ const defaultGset = {
 export function useAppFlow() {
   const saved = useMemo(() => loadState(), []);
   const inviteCode = useMemo(() => readInviteCode(), []);
+  const oauthLanding = useMemo(() => readOAuthLanding(), []);
 
-  // 초대 링크로 들어오면 무조건 초대 화면. 아니면 로그인 상태일 때만 이전 위치 복원.
-  const initialStep = inviteCode ? 'invite' : saved.loggedIn ? saved.step || 'home' : 'login';
+  // 우선순위: 초대 링크 → OAuth 랜딩(온보딩/메인) → 로그인 상태 시 이전 위치 → 로그인 화면.
+  const initialStep = inviteCode
+    ? 'invite'
+    : oauthLanding
+      ? oauthLanding
+      : saved.loggedIn
+        ? saved.step || 'home'
+        : 'login';
 
   const [step, setStep] = useState(initialStep);
-  const [loggedIn, setLoggedIn] = useState(saved.loggedIn || false);
+  // OAuth 랜딩으로 들어오면 로그인 완료로 간주한다. (토큰 발급 연동은 백엔드 PR4 이후)
+  const [loggedIn, setLoggedIn] = useState(saved.loggedIn || !!oauthLanding);
   const [afterLogin, setAfterLogin] = useState(inviteCode ? 'dashboard' : null);
+
+  // OAuth 랜딩 경로(/onboarding, /home)는 초기 step 결정에만 쓰고, URL은 /로 정리한다.
+  // 새로고침 시 경로에 갇히거나 재트리거되지 않도록 한다.
+  useEffect(() => {
+    if (oauthLanding) {
+      try {
+        window.history.replaceState({}, '', '/');
+      } catch {
+        /* noop */
+      }
+    }
+  }, [oauthLanding]);
 
   // 프로필
   const [profile, setProfile] = useState(saved.profile || { name: '나', photo: null });

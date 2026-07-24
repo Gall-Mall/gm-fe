@@ -1,3 +1,9 @@
+// 백엔드(Spring Security) OAuth 시작 경로: authorizationEndpoint baseUri(/api/auth/oauth) + /{provider}
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+function startOAuth(provider) {
+  window.location.href = `${API_BASE}/api/auth/oauth/${provider}`;
+}
+
 export function LoginPage({ flow }) {
   const { doLogin, goToStep, afterLogin } = flow;
   return (
@@ -21,7 +27,7 @@ export function LoginPage({ flow }) {
           <p className="muted">소셜 계정으로 바로 그룹에 참여하세요.</p>
           <div className="login-buttons">
             <button type="button" className="social kakao" onClick={doLogin}>카카오로 시작하기</button>
-            <button type="button" className="social naver" onClick={doLogin}>네이버로 시작하기</button>
+            <button type="button" className="social naver" onClick={() => startOAuth('naver')}>네이버로 시작하기</button>
           </div>
           {afterLogin === 'dashboard' ? (
             <p className="login-note">그룹에 참여하려면 로그인이 필요해요. 로그인하면 바로 참여돼요.</p>
