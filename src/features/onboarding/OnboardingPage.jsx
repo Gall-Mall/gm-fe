@@ -23,7 +23,7 @@ export function OnboardingPage({ flow }) {
     goToStep, onbStep, setOnbStep, consent, setConsent,
     allergens, setAllergens, aiAllergens, setAiAllergens,
     dislikeMenus, setDislikeMenus, aiExclusions, setAiExclusions,
-    likeMenus, setLikeMenus, aiLikes, setAiLikes, analyzeText,
+    likeMenus, setLikeMenus, aiLikes, setAiLikes, analyzeText, completeOnboarding, operationError,
   } = flow;
 
   const required = ['service', 'privacy', 'age', 'health'];
@@ -31,10 +31,10 @@ export function OnboardingPage({ flow }) {
   const allOn = CONSENTS.every((c) => consent[c.key]);
   const toggle = (list, setList, v) => setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  function next() {
+  async function next() {
     if (onbStep === 1 && !req1) return;
     if (onbStep < 4) setOnbStep(onbStep + 1);
-    else goToStep('home');
+    else await completeOnboarding();
   }
   function prev() {
     if (onbStep === 1) goToStep('login');
@@ -124,6 +124,7 @@ export function OnboardingPage({ flow }) {
             {onbStep === 4 ? '완료' : '다음'}
           </button>
         </div>
+        {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
       </div>
     </div>
   );

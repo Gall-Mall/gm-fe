@@ -9,14 +9,37 @@ import {
   voteCandidate,
 } from '../data/appData';
 import { createVoteSession } from '../services/voteSessionApi';
-import { createAndSubscribeVoteSession } from '../services/voteSessionFlow';
-import { subscribeVoteSession } from '../services/voteSessionSocket';
-import { logout as logoutApi } from '../services/authApi';
+import { closeMenuVote, getMenuCandidates, startMenuRecommendation, submitMenuVote } from '../services/menuCandidateApi';
+import { createGroup as createGroupApi, getGroup, listGroups, updateGroup } from '../services/groupApi';
+import { createInviteLink, getInvite, joinInvite } from '../services/inviteApi';
+import { exchangeOAuthCode, logout as logoutApi, refreshToken } from '../services/authApi';
+import { getFoodSettings, getMe, submitOnboarding, updateFoodSettings } from '../services/userApi';
+import { analyzeAllergen, analyzeFoodPreference } from '../services/preferencesApi';
+import { API_MODE, getAccessToken, resolveApiMode, runWithApiFallback } from '../services/apiRuntime';
 
 // AI 분석: window.claude가 있으면 사용, 없으면 간단 폴백
 async function analyzeText(kind, text) {
   const t = (text || '').trim();
   if (!t) return [];
+  const mode = resolveApiMode();
+  if (mode !== API_MODE.MOCK && getAccessToken()) {
+    try {
+      if (kind === 'allergy') {
+        const result = await analyzeAllergen(t);
+        return [
+          ...(result.standardAllergens || []).map((item) => ({ ...item, kind: '성분' })),
+          ...(result.customAllergens || []).map((name) => ({ name, kind: '성분' })),
+        ];
+      }
+      const result = await analyzeFoodPreference(t);
+      return [
+        ...(result.matchedMenus || []).map((item) => ({ ...item, kind: '메뉴' })),
+        ...(result.unmatchedText ? [{ name: result.unmatchedText, kind: '특성' }] : []),
+      ];
+    } catch (error) {
+      if (mode === API_MODE.REAL) throw error;
+    }
+  }
   if (typeof window !== 'undefined' && window.claude?.complete) {
     try {
       const sys =
@@ -77,6 +100,63 @@ function readOAuthLanding() {
   return null;
 }
 
+function readOAuthCode() {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('code');
+}
+
+function backendGroupToView(group) {
+  return {
+    ...group,
+    id: group.groupId,
+    city: group.locationAddress,
+    date: '진행 중',
+    progress: 0,
+    status: '준비 중',
+    isMine: group.currentUserRole ? group.currentUserRole === 'HOST' : true,
+  };
+}
+
+function backendGroupToSettings(group) {
+  return {
+    name: group.name,
+    location: group.locationAddress,
+    recTime: group.recommendationTime || '18:00',
+    distanceKm: (group.searchRadiusM || 2000) / 1000,
+    distanceMode: 'preset',
+    distanceText: String((group.searchRadiusM || 2000) / 1000),
+    memberTarget: group.maxMemberCount || 4,
+    lat: group.latitude,
+    lng: group.longitude,
+  };
+}
+
+function backendCandidateToMenu(candidate) {
+  return {
+    id: candidate.voteCandidateId,
+    menuId: candidate.menuId,
+    name: candidate.menuName,
+    cat: candidate.categoryName || '메뉴',
+    image: candidate.imageUrl,
+    emoji: candidate.imageUrl ? null : '🍽️',
+    score: 90,
+    tags: [],
+    traits: [],
+    reasons: candidate.description ? [candidate.description] : ['그룹 취향을 반영한 추천 메뉴예요.'],
+    cautions: [],
+    votes: {
+      like: candidate.counts?.go || 0,
+      maybe: candidate.counts?.maybe || 0,
+      dislike: candidate.counts?.no || 0,
+    },
+    resultStatus: candidate.resultStatus,
+  };
+}
+
+function uniqueText(values) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value).trim()).filter(Boolean))].join(', ');
+}
+
 const defaultDraft = {
   name: '', destination: '강남', dateMode: 'fixed',
   dateStart: '', dateEnd: '', dateCasual: '오늘',
@@ -94,6 +174,8 @@ export function useAppFlow() {
   const saved = useMemo(() => loadState(), []);
   const inviteCode = useMemo(() => readInviteCode(), []);
   const oauthLanding = useMemo(() => readOAuthLanding(), []);
+  const oauthCode = useMemo(() => readOAuthCode(), []);
+  const apiMode = resolveApiMode();
 
   // 우선순위: 초대 링크 → OAuth 랜딩(온보딩/메인) → 로그인 상태 시 이전 위치 → 로그인 화면.
   const initialStep = inviteCode
@@ -105,21 +187,9 @@ export function useAppFlow() {
         : 'login';
 
   const [step, setStep] = useState(initialStep);
-  // OAuth 랜딩으로 들어오면 로그인 완료로 간주한다. (토큰 발급 연동은 백엔드 PR4 이후)
-  const [loggedIn, setLoggedIn] = useState(saved.loggedIn || !!oauthLanding);
+  const [loggedIn, setLoggedIn] = useState(saved.loggedIn || (apiMode === API_MODE.MOCK && !!oauthLanding));
   const [afterLogin, setAfterLogin] = useState(inviteCode ? 'dashboard' : null);
 
-  // OAuth 랜딩 경로(/onboarding, /home)는 초기 step 결정에만 쓰고, URL은 /로 정리한다.
-  // 새로고침 시 경로에 갇히거나 재트리거되지 않도록 한다.
-  useEffect(() => {
-    if (oauthLanding) {
-      try {
-        window.history.replaceState({}, '', '/');
-      } catch {
-        /* noop */
-      }
-    }
-  }, [oauthLanding]);
 
   // 프로필
   const [profile, setProfile] = useState(saved.profile || { name: '나', photo: null });
@@ -136,6 +206,7 @@ export function useAppFlow() {
   const [aiExclusions, setAiExclusions] = useState(saved.aiExclusions || []);
   const [likeMenus, setLikeMenus] = useState(saved.likeMenus || []);
   const [aiLikes, setAiLikes] = useState(saved.aiLikes || []);
+  const [serverUserSetting, setServerUserSetting] = useState(null);
 
   // 그룹 생성 draft
   const [draft, setDraft] = useState(saved.draft || defaultDraft);
@@ -145,6 +216,10 @@ export function useAppFlow() {
   const [isHost, setIsHost] = useState(saved.isHost ?? true);
   const [gset, setGset] = useState(saved.gset || defaultGset);
   const [groups, setGroups] = useState(saved.groups || seedGroups);
+  const [activeGroupId, setActiveGroupId] = useState(saved.activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID || null);
+  const [inviteInfo, setInviteInfo] = useState(null);
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [operationError, setOperationError] = useState('');
 
   // 투표
   const [voteLimitMin, setVoteLimitMin] = useState(saved.voteLimitMin ?? 60);
@@ -182,14 +257,100 @@ export function useAppFlow() {
   const [voteStartStatus, setVoteStartStatus] = useState('idle');
   const [voteStartError, setVoteStartError] = useState('');
   const [lastVoteSessionEvent, setLastVoteSessionEvent] = useState(null);
+  const [serverMenus, setServerMenus] = useState([]);
 
   const tick = useRef(null);
-  const voteSessionConnection = useRef(null);
   const [, setNow] = useState(Date.now());
 
-  useEffect(() => () => {
-    voteSessionConnection.current?.disconnect();
+  useEffect(() => {
+    let cancelled = false;
+    async function bootstrap() {
+      if (oauthCode && apiMode !== API_MODE.MOCK) {
+        try {
+          const token = await exchangeOAuthCode(oauthCode);
+          if (cancelled) return;
+          setLoggedIn(true);
+          setStep(token.redirectPath === '/onboarding' ? 'onboarding' : 'home');
+        } catch (error) {
+          if (apiMode === API_MODE.REAL) {
+            setLoggedIn(false);
+            setStep('login');
+            setOperationError(error instanceof Error ? error.message : '로그인에 실패했습니다.');
+            return;
+          }
+          setLoggedIn(true);
+          setStep(oauthLanding || 'home');
+        }
+      }
+
+      if (!oauthCode && !getAccessToken() && saved.loggedIn && apiMode !== API_MODE.MOCK) {
+        try {
+          await refreshToken();
+        } catch (error) {
+          if (apiMode === API_MODE.REAL) {
+            setLoggedIn(false);
+            setStep('login');
+            setOperationError(error instanceof Error ? error.message : '로그인이 만료되었습니다.');
+            return;
+          }
+        }
+      }
+
+      if (getAccessToken()) {
+        try {
+          const [me, page] = await Promise.all([getMe(), listGroups()]);
+          if (cancelled) return;
+          setLoggedIn(true);
+          setProfile((current) => ({ ...current, name: me.nickname || me.name || current.name }));
+          if (Array.isArray(page?.content)) setGroups(page.content.map(backendGroupToView));
+          try {
+            const setting = await getFoodSettings();
+            if (!cancelled) {
+              setServerUserSetting(setting);
+              if (setting.allergenText) setAiAllergens(setting.allergenText.split(',').map((name) => ({ name: name.trim(), kind: '성분' })).filter((item) => item.name));
+              if (setting.preferredText) setAiLikes(setting.preferredText.split(',').map((name) => ({ name: name.trim(), kind: '메뉴' })).filter((item) => item.name));
+              if (setting.excludedText) setAiExclusions(setting.excludedText.split(',').map((name) => ({ name: name.trim(), kind: '메뉴' })).filter((item) => item.name));
+            }
+          } catch {
+            // 온보딩 전 사용자는 저장된 취향이 없을 수 있다.
+          }
+        } catch (error) {
+          if (apiMode === API_MODE.REAL) setOperationError(error instanceof Error ? error.message : '사용자 정보를 불러오지 못했습니다.');
+        }
+      }
+
+      if (oauthLanding || oauthCode) {
+        try {
+          window.history.replaceState({}, '', '/');
+        } catch {
+          /* noop */
+        }
+      }
+    }
+    bootstrap();
+    return () => { cancelled = true; };
+    // OAuth 리다이렉트와 최초 사용자 데이터는 앱 시작 시 한 번만 처리한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!inviteCode || apiMode === API_MODE.MOCK || !getAccessToken()) return undefined;
+    let cancelled = false;
+    getInvite(inviteCode)
+      .then((info) => {
+        if (cancelled) return;
+        setInviteInfo(info);
+        setGset((current) => ({
+          ...current,
+          name: info.groupName || current.name,
+          memberTarget: info.maxMemberCount || current.memberTarget,
+        }));
+      })
+      .catch((error) => {
+        if (apiMode === API_MODE.REAL) setOperationError(error instanceof Error ? error.message : '초대 정보를 불러오지 못했습니다.');
+      });
+    return () => { cancelled = true; };
+  }, [apiMode, inviteCode]);
 
   useEffect(() => {
     const el = document.scrollingElement || document.documentElement;
@@ -202,7 +363,7 @@ export function useAppFlow() {
     const snap = {
       step, loggedIn, profile, consent,
       allergens, aiAllergens, dislikeMenus, aiExclusions, likeMenus, aiLikes,
-      draft, members, isHost, gset, groups,
+      draft, members, isHost, gset, groups, activeGroupId,
       voteLimitMin, voteStartedAt, voteKeywords, menuVotes, myMenuVote, currentMenuIdx, simAllVoted,
       roundIds, pastRoundIds,
       candidateIds, decisionChoices, decisionClosed, confirmedMenuId, decisionMethod,
@@ -216,7 +377,7 @@ export function useAppFlow() {
   }, [
     step, loggedIn, profile, consent,
     allergens, aiAllergens, dislikeMenus, aiExclusions, likeMenus, aiLikes,
-    draft, members, isHost, gset, groups,
+    draft, members, isHost, gset, groups, activeGroupId,
     voteLimitMin, voteStartedAt, voteKeywords, menuVotes, myMenuVote, currentMenuIdx, simAllVoted,
     roundIds, pastRoundIds,
     candidateIds, decisionChoices, decisionClosed, confirmedMenuId, decisionMethod,
@@ -255,8 +416,6 @@ export function useAppFlow() {
   function logout() {
     // 서버 세션 종료는 best-effort (실패해도 로컬 로그아웃은 진행)
     logoutApi().catch(() => {});
-    voteSessionConnection.current?.disconnect();
-    voteSessionConnection.current = null;
     setVoteSessionId(null);
     setVoteStartStatus('idle');
     setVoteStartError('');
@@ -265,17 +424,89 @@ export function useAppFlow() {
     setStep('login');
   }
 
-  function joinGroup() {
-    // 초대 처리 후 URL을 정리해 새로고침 시 초대 화면에 갇히지 않도록 함
-    try {
-      if (window.location.pathname.startsWith('/invite/')) window.history.replaceState({}, '', '/');
-    } catch {
-      /* noop */
+  function buildUserSetting() {
+    return {
+      allergenIds: [...new Set([...(serverUserSetting?.allergenIds || []), ...aiAllergens.map((item) => item.id).filter(Boolean)])],
+      preferredMenuIds: [...new Set([...(serverUserSetting?.preferredMenuIds || []), ...aiLikes.map((item) => item.id).filter(Boolean)])],
+      excludedMenuIds: [...new Set([...(serverUserSetting?.excludedMenuIds || []), ...aiExclusions.map((item) => item.id).filter(Boolean)])],
+      preferredCategoryIds: serverUserSetting?.preferredCategoryIds || [],
+      excludedCategoryIds: serverUserSetting?.excludedCategoryIds || [],
+      allergenText: uniqueText([...allergens, ...aiAllergens.map((item) => item.name)]),
+      preferredText: uniqueText([...likeMenus, ...aiLikes.map((item) => item.name)]),
+      excludedText: uniqueText([...dislikeMenus, ...aiExclusions.map((item) => item.name)]),
+    };
+  }
+
+  async function completeOnboarding() {
+    const mode = resolveApiMode();
+    const hasToken = Boolean(getAccessToken());
+    if (mode === API_MODE.REAL && !hasToken) {
+      setOperationError('로그인 정보가 없어 온보딩을 저장할 수 없습니다.');
+      return;
     }
-    if (loggedIn) setStep('dashboard');
-    else {
+    setOperationError('');
+    try {
+      await runWithApiFallback({
+        mode: hasToken ? mode : API_MODE.MOCK,
+        realAction: () => submitOnboarding({ termsAgreed: true, userSetting: buildUserSetting() }),
+        mockAction: () => ({ onboardingCompleted: true, status: 'ACTIVE' }),
+      });
+      setStep('home');
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '온보딩 정보를 저장하지 못했습니다.');
+    }
+  }
+
+  async function savePreferences() {
+    const mode = resolveApiMode();
+    const hasToken = Boolean(getAccessToken());
+    if (mode === API_MODE.REAL && !hasToken) {
+      setOperationError('로그인 정보가 없어 취향을 저장할 수 없습니다.');
+      return;
+    }
+    setOperationError('');
+    try {
+      await runWithApiFallback({
+        mode: hasToken ? mode : API_MODE.MOCK,
+        realAction: () => updateFoodSettings(buildUserSetting()),
+        mockAction: () => null,
+      });
+      setPrefsOpen(false);
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '취향 설정을 저장하지 못했습니다.');
+    }
+  }
+
+  async function joinGroup() {
+    if (!loggedIn) {
       setAfterLogin('dashboard');
       setStep('login');
+      return;
+    }
+
+    const mode = resolveApiMode();
+    const hasToken = Boolean(getAccessToken());
+    if (mode === API_MODE.REAL && (!hasToken || !inviteCode)) {
+      setOperationError(!hasToken ? '로그인 정보가 없습니다.' : '초대 코드가 없습니다.');
+      return;
+    }
+
+    try {
+      const result = await runWithApiFallback({
+        mode: hasToken && inviteCode ? mode : API_MODE.MOCK,
+        realAction: () => joinInvite(inviteCode),
+        mockAction: () => ({ groupId: inviteInfo?.groupId || null }),
+      });
+      const joinedGroupId = result.data?.groupId || inviteInfo?.groupId;
+      if (joinedGroupId) setActiveGroupId(joinedGroupId);
+      try {
+        if (window.location.pathname.startsWith('/invite/')) window.history.replaceState({}, '', '/');
+      } catch {
+        /* noop */
+      }
+      setStep('dashboard');
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '그룹에 참여하지 못했습니다.');
     }
   }
 
@@ -287,27 +518,22 @@ export function useAppFlow() {
     setMembers((cur) => cur.filter((m) => m.id !== id));
   }
 
-  // 그룹 생성: 입력한 draft를 실제 그룹 설정/목록에 반영
-  function createGroup() {
+  function applyLocalGroup(group = null) {
     const name = (draft.name || '').trim() || '새 그룹';
     const location = (draft.destination || '').trim() || '위치 미정';
-    setGset((g) => ({
-      ...g,
-      name,
-      location,
-      distanceKm: draft.distanceKm,
-      distanceMode: draft.distanceMode,
-      distanceText: draft.distanceText,
-      memberTarget: draft.members,
-      purpose: draft.purpose,
-      lat: draft.lat,
-      lng: draft.lng,
-    }));
+    const nextSettings = group ? backendGroupToSettings(group) : {
+      ...gset, name, location, distanceKm: draft.distanceKm, distanceMode: draft.distanceMode,
+      distanceText: draft.distanceText, memberTarget: draft.members, purpose: draft.purpose,
+      lat: draft.lat, lng: draft.lng,
+    };
+    setGset(nextSettings);
     const dateLabel =
       draft.dateMode === 'fixed'
         ? draft.dateStart || '날짜 미정'
         : draft.dateCasual || '날짜 미정';
-    const entry = { name, city: location, date: dateLabel, progress: 0, status: '준비 중', isMine: true };
+    const entry = group
+      ? backendGroupToView(group)
+      : { name, city: location, date: dateLabel, progress: 0, status: '준비 중', isMine: true };
     setGroups((cur) => [entry, ...cur.filter((x) => x.name !== name)]);
     // 새 그룹은 투표/식당/일정 상태를 깨끗하게 시작
     setVoteStartedAt(null);
@@ -327,57 +553,182 @@ export function useAppFlow() {
     setRestaurantVotes(freshRestaurantVotes());
     setMyRestaurantVote({});
     setSavedSchedule(null);
+  }
+
+  async function createGroup() {
+    const mode = resolveApiMode();
+    const hasToken = Boolean(getAccessToken());
+    if (mode === API_MODE.REAL && !hasToken) {
+      setOperationError('로그인 정보가 없어 그룹을 만들 수 없습니다.');
+      return;
+    }
+    setOperationError('');
+    const payload = {
+      name: (draft.name || '').trim() || '새 그룹',
+      locationAddress: (draft.destination || '').trim() || '위치 미정',
+      latitude: draft.lat,
+      longitude: draft.lng,
+      searchRadiusM: Math.round(draft.distanceKm * 1000),
+      recommendationTime: gset.recTime || '18:00',
+      maxMemberCount: draft.members,
+    };
+    try {
+      const result = await runWithApiFallback({
+        mode: hasToken ? mode : API_MODE.MOCK,
+        realAction: () => createGroupApi(payload),
+        mockAction: () => null,
+      });
+      if (result.source === 'real') {
+        applyLocalGroup(result.data);
+        setActiveGroupId(result.data.groupId);
+        try {
+          const invite = await createInviteLink(result.data.groupId);
+          setInviteUrl(invite.inviteUrl || '');
+          setStep('invite');
+        } catch (error) {
+          setOperationError(error instanceof Error ? error.message : '초대 링크를 만들지 못했습니다.');
+          setStep('dashboard');
+        }
+      } else {
+        applyLocalGroup();
+        setStep('dashboard');
+      }
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '그룹을 만들지 못했습니다.');
+    }
+  }
+
+  async function selectGroup(group) {
+    const groupId = group.groupId || group.id;
+    setActiveGroupId(groupId || null);
+    if (groupId && resolveApiMode() !== API_MODE.MOCK && getAccessToken()) {
+      try {
+        const detail = await getGroup(groupId);
+        setGset(backendGroupToSettings(detail));
+        setIsHost(detail.currentUserRole === 'HOST');
+      } catch (error) {
+        if (resolveApiMode() === API_MODE.REAL) {
+          setOperationError(error instanceof Error ? error.message : '그룹 정보를 불러오지 못했습니다.');
+          return;
+        }
+      }
+    }
     setStep('dashboard');
+  }
+
+  async function saveGroupSettings() {
+    const groupId = activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID;
+    const mode = resolveApiMode();
+    if (mode === API_MODE.REAL && (!groupId || !getAccessToken())) {
+      setOperationError(!groupId ? '수정할 그룹이 없습니다.' : '로그인 정보가 없습니다.');
+      return;
+    }
+    const payload = {
+      name: gset.name,
+      locationAddress: gset.location,
+      latitude: gset.lat,
+      longitude: gset.lng,
+      searchRadiusM: Math.round(gset.distanceKm * 1000),
+      recommendationTime: gset.recTime,
+      maxMemberCount: gset.memberTarget,
+    };
+    try {
+      const result = await runWithApiFallback({
+        mode: groupId && getAccessToken() ? mode : API_MODE.MOCK,
+        realAction: () => updateGroup(groupId, payload),
+        mockAction: () => null,
+      });
+      if (result.source === 'real') {
+        const view = backendGroupToView(result.data);
+        setGroups((current) => current.map((group) => (group.groupId === groupId ? view : group)));
+      }
+      setStep('dashboard');
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '그룹 설정을 저장하지 못했습니다.');
+    }
+  }
+
+  function initializeVoteFlow() {
+    setVoteStartedAt(Date.now());
+    setMenuVotes(freshVoteCounts());
+    setMyMenuVote({});
+    setCurrentMenuIdx(0);
+    setSimAllVoted(false);
+    setRoundIds(buildRoundIds([], []));
+    setPastRoundIds([]);
+    setCandidateIds([]);
+    setDecisionChoices({});
+    setDecisionClosed(false);
+    setConfirmedMenuId(null);
+    setDecisionMethod(null);
+    setSelectedFinalMenuId(null);
+    setStep('recommend');
   }
 
   async function startVote() {
     if (voteStartStatus === 'creating' || voteStartStatus === 'connecting') return;
 
-    const groupId = import.meta.env.VITE_ACTIVE_GROUP_ID;
-    if (!groupId) {
+    const mode = resolveApiMode();
+    const groupId = activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID;
+    const accessToken = getAccessToken();
+    const missingRealConfig = !groupId || !accessToken;
+
+    if (mode === API_MODE.REAL && missingRealConfig) {
       setVoteStartStatus('failed');
-      setVoteStartError('VITE_ACTIVE_GROUP_ID 설정이 필요합니다.');
+      setVoteStartError(!groupId
+        ? '투표를 시작할 그룹을 먼저 선택해주세요.'
+        : '실제 API 연결에 사용할 Access Token이 필요합니다.');
       return;
     }
 
     setVoteStartStatus('creating');
     setVoteStartError('');
+
     try {
-      const { connection } = await createAndSubscribeVoteSession({
-        groupId,
-        request: {
+      if (missingRealConfig || mode === API_MODE.MOCK) {
+        setServerMenus([]);
+        setVoteStartStatus('mock');
+        initializeVoteFlow();
+        return;
+      }
+
+      let session;
+      try {
+        session = await createVoteSession(groupId, {
           title: `${gset.name} 메뉴 투표`,
           likeKeyword: voteKeywords.join(', ') || null,
           dislikeKeyword: null,
-        },
-        onSessionCreated: (session) => {
-          setVoteSessionId(session.voteSessionId);
-          setVoteStartStatus('connecting');
-        },
-        onEvent: setLastVoteSessionEvent,
-        createVoteSession,
-        subscribeVoteSession,
-      });
+        }, { accessToken });
+      } catch (error) {
+        if (mode !== API_MODE.HYBRID) throw error;
+        setServerMenus([]);
+        setVoteStartStatus('mock');
+        setVoteStartError(`${error instanceof Error ? error.message : '백엔드 연결에 실패했습니다.'} mock 데이터로 계속 진행합니다.`);
+        initializeVoteFlow();
+        return;
+      }
 
-      voteSessionConnection.current?.disconnect();
-      voteSessionConnection.current = connection;
+      setVoteSessionId(session.voteSessionId);
+      setVoteStartStatus('connecting');
+      await startMenuRecommendation(groupId, session.voteSessionId);
+
+      let candidates = [];
+      for (let attempt = 0; attempt < 6 && candidates.length === 0; attempt += 1) {
+        candidates = await getMenuCandidates(groupId, session.voteSessionId);
+        if (candidates.length === 0 && attempt < 5) {
+          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        }
+      }
+      if (candidates.length === 0) {
+        throw new Error('추천 결과가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      const mappedMenus = candidates.map(backendCandidateToMenu);
+      setServerMenus(mappedMenus);
       setVoteStartStatus('connected');
-
-      // 최신 main의 투표 초기화·라운드 흐름은 그대로 유지한다.
-      setVoteStartedAt(Date.now());
-      setMenuVotes(freshVoteCounts());
-      setMyMenuVote({});
-      setCurrentMenuIdx(0);
-      setSimAllVoted(false);
-      setRoundIds(buildRoundIds([], []));
-      setPastRoundIds([]);
-      setCandidateIds([]);
-      setDecisionChoices({});
-      setDecisionClosed(false);
-      setConfirmedMenuId(null);
-      setDecisionMethod(null);
-      setSelectedFinalMenuId(null);
-      setStep('recommend');
+      initializeVoteFlow();
+      setRoundIds(mappedMenus.map((menu) => menu.id));
+      setMenuVotes(Object.fromEntries(mappedMenus.map((menu) => [menu.id, { ...menu.votes }])));
     } catch (error) {
       setVoteStartStatus('failed');
       setVoteStartError(error instanceof Error ? error.message : '투표 시작에 실패했습니다.');
@@ -509,10 +860,16 @@ export function useAppFlow() {
 
   // 현재 라운드 메뉴(점수 반영). 아직 라운드가 없으면 미리 계산해 보여줌.
   const recMenus = useMemo(() => {
+    if (serverMenus.length > 0) return serverMenus;
     const ids = roundIds && roundIds.length ? roundIds : buildRoundIds([], []);
     return ids.map((id) => menuById[id]).filter(Boolean).map((m) => ({ ...m, score: scoreMenu(m) }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundIds, hardExclude, softDislikeCats, likeExact, likeCats, voteKeywords, menuById]);
+  }, [roundIds, hardExclude, softDislikeCats, likeExact, likeCats, voteKeywords, menuById, serverMenus]);
+
+  const activeMenuById = useMemo(
+    () => ({ ...menuById, ...Object.fromEntries(recMenus.map((menu) => [menu.id, menu])) }),
+    [menuById, recMenus],
+  );
 
   // 이전 라운드에서 나온(현재 라운드에 없는) 메뉴 — "이전 투표" 목록, 선택 가능
   const pastMenus = useMemo(() => {
@@ -547,11 +904,31 @@ export function useAppFlow() {
   const remainMs = voteStartedAt ? Math.max(0, voteLimitMin * 60000 - (Date.now() - voteStartedAt)) : 0;
   const voteClosed = Boolean(voteStartedAt) && remainMs === 0;
 
-  function voteMenu(choice) {
+  async function voteMenu(choice) {
     if (voteClosed) return; // 시간 종료 후 투표 차단
     const m = recMenus[currentMenuIdx];
     if (!m) return;
     const had = myMenuVote[m.id];
+
+    if (voteStartStatus === 'connected' && activeGroupId && voteSessionId) {
+      try {
+        const submission = await submitMenuVote(activeGroupId, voteSessionId, m.id, choice);
+        setMenuVotes((current) => ({
+          ...current,
+          [m.id]: {
+            like: submission.counts?.go || 0,
+            maybe: submission.counts?.maybe || 0,
+            dislike: submission.counts?.no || 0,
+          },
+        }));
+        setMyMenuVote((current) => ({ ...current, [m.id]: choice }));
+        if (!had) setCurrentMenuIdx((index) => Math.min(recMenus.length - 1, index + 1));
+      } catch (error) {
+        setVoteStartError(error instanceof Error ? error.message : '메뉴 투표를 저장하지 못했습니다.');
+      }
+      return;
+    }
+
     setMenuVotes((cur) => {
       const prev = cur[m.id] || { like: 0, maybe: 0, dislike: 0 };
       const nv = { ...prev };
@@ -561,6 +938,31 @@ export function useAppFlow() {
     });
     setMyMenuVote((cur) => ({ ...cur, [m.id]: choice }));
     if (!had) setCurrentMenuIdx((i) => Math.min(recMenus.length - 1, i + 1));
+  }
+
+  async function closeMenuVoting() {
+    if (voteStartStatus !== 'connected' || !activeGroupId || !voteSessionId) {
+      setSimAllVoted(true);
+      return;
+    }
+    try {
+      const results = await closeMenuVote(activeGroupId, voteSessionId);
+      setMenuVotes((current) => {
+        const next = { ...current };
+        results.forEach((result) => {
+          next[result.candidateId] = {
+            like: result.goCount,
+            maybe: result.maybeCount,
+            dislike: result.noCount,
+          };
+        });
+        return next;
+      });
+      setCandidateIds(results.filter((result) => result.result !== 'EXCLUDED').map((result) => result.candidateId).slice(0, 3));
+      setSimAllVoted(true);
+    } catch (error) {
+      setVoteStartError(error instanceof Error ? error.message : '메뉴 투표를 마감하지 못했습니다.');
+    }
   }
 
   const finalRanked = useMemo(() => {
@@ -584,22 +986,22 @@ export function useAppFlow() {
     const maxLike = Math.max(...finalRanked.map((m) => m.v.like));
     const tied = finalRanked.filter((m) => m.v.like === maxLike);
     const tie = tied.length > 1;
-    const explicit = selectedFinalMenuId && menuById[selectedFinalMenuId] ? selectedFinalMenuId : null;
+    const explicit = selectedFinalMenuId && activeMenuById[selectedFinalMenuId] ? selectedFinalMenuId : null;
     const decidedId = explicit || (tie ? null : tied[0].id);
     return { tie, tied, decidedId };
-  }, [finalRanked, selectedFinalMenuId, menuById]);
+  }, [finalRanked, selectedFinalMenuId, activeMenuById]);
 
   // 최종 결정된 메뉴 객체 (확정 메뉴 우선)
   const decidedMenu =
-    (confirmedMenuId && menuById[confirmedMenuId]) ||
-    (finalDecision.decidedId && (finalRanked.find((m) => m.id === finalDecision.decidedId) || menuById[finalDecision.decidedId])) ||
+    (confirmedMenuId && activeMenuById[confirmedMenuId]) ||
+    (finalDecision.decidedId && (finalRanked.find((m) => m.id === finalDecision.decidedId) || activeMenuById[finalDecision.decidedId])) ||
     finalRanked[0] ||
     recMenus[0] ||
     null;
 
   // ---- 라운드 판정/후보 결정 파생값 ----
   const candidateMenus = candidateIds
-    .map((id) => menuById[id])
+    .map((id) => activeMenuById[id])
     .filter(Boolean)
     .map((m) => ({ ...m, v: menuVotes[m.id] || { like: 0, maybe: 0, dislike: 0 } }));
   const candidateCount = candidateMenus.length;
@@ -702,34 +1104,42 @@ export function useAppFlow() {
   async function handleCopy() {
     const origin = window.location?.origin || 'http://localhost:5173';
     try {
-      await navigator.clipboard.writeText(`${origin}/invite/${defaultGroup.inviteCode}`);
+      let nextInviteUrl = inviteUrl;
+      if (!nextInviteUrl && activeGroupId && resolveApiMode() !== API_MODE.MOCK && getAccessToken()) {
+        const invite = await createInviteLink(activeGroupId);
+        nextInviteUrl = invite.inviteUrl || `${origin}/invite/${invite.inviteCode}`;
+        setInviteUrl(nextInviteUrl);
+      }
+      await navigator.clipboard.writeText(nextInviteUrl || `${origin}/invite/${defaultGroup.inviteCode}`);
       setCopied('success');
-    } catch {
+    } catch (error) {
       setCopied('error');
+      if (resolveApiMode() === API_MODE.REAL) setOperationError(error instanceof Error ? error.message : '초대 링크를 만들지 못했습니다.');
     }
     window.setTimeout(() => setCopied('idle'), 1800);
   }
 
   return {
     step, goToStep,
-    loggedIn, afterLogin, doLogin, logout, joinGroup, inviteCode,
+    loggedIn, afterLogin, doLogin, logout, joinGroup, inviteCode, inviteInfo, inviteUrl,
+    operationError,
     profile, setProfile, profileOpen, setProfileOpen,
     prefsOpen, setPrefsOpen, prefsTab, setPrefsTab,
     onbStep, setOnbStep, consent, setConsent,
     allergens, setAllergens, aiAllergens, setAiAllergens,
     dislikeMenus, setDislikeMenus, aiExclusions, setAiExclusions,
     likeMenus, setLikeMenus, aiLikes, setAiLikes,
-    analyzeText,
+    analyzeText, completeOnboarding, savePreferences,
     draft, setDraft, createGroup,
     members, isHost, setIsHost, delegateHost, kickMember,
-    gset, setGset, groups,
+    gset, setGset, groups, activeGroupId, selectGroup, saveGroupSettings,
     voteLimitMin, setVoteLimitMin, voteStartedAt, startVote, remainMs, voteClosed,
     voteSessionId, voteStartStatus, voteStartError, lastVoteSessionEvent,
     voteKeywords, addVoteKeyword, removeVoteKeyword,
     menus: recMenus, excludedMenus, menuVotes, myMenuVote, currentMenuIdx, setCurrentMenuIdx, voteMenu,
     votedCount, allMenusVoted,
     newRound, pastMenus, decidedMenu, roundNumber: (pastRoundIds?.length || 0) + 1,
-    simAllVoted, setSimAllVoted, finalRanked, finalDecision,
+    simAllVoted, setSimAllVoted, closeMenuVoting, finalRanked, finalDecision,
     // 라운드 판정 → 후보 결정 흐름
     candidateMenus, candidateCount, candidateIds, roundSummary,
     setRoundCandidates, decisionVote, closeDecision, confirmMenu, reRecommend, recommending,

@@ -1,7 +1,7 @@
 import { Plus, ChevronRight, Users } from 'lucide-react';
 
 export function GroupsPage({ flow }) {
-  const { goToStep, groups } = flow;
+  const { goToStep, groups, selectGroup, operationError } = flow;
   return (
     <main className="screen page narrow">
       <header className="page-head">
@@ -25,7 +25,7 @@ export function GroupsPage({ flow }) {
       ) : (
         <div className="group-list">
           {groups.map((g) => (
-            <button type="button" className="card group-row" key={g.name} onClick={() => goToStep('dashboard')}>
+            <button type="button" className="card group-row" key={g.groupId || g.name} onClick={() => selectGroup(g)}>
               <div>
                 <div className="final-name"><h2>{g.name}</h2>{g.isMine ? <em className="badge">내가 만든</em> : null}</div>
                 <p className="muted">{g.city} · {g.date}</p>
@@ -37,6 +37,7 @@ export function GroupsPage({ flow }) {
           ))}
         </div>
       )}
+      {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
     </main>
   );
 }

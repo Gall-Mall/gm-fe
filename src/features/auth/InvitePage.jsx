@@ -2,10 +2,10 @@ import { MapPin, Clock, Unlink } from 'lucide-react';
 import { heroImage, defaultGroup } from '../../data/appData';
 
 export function InvitePage({ flow }) {
-  const { gset, members, joinGroup, goToStep, inviteCode } = flow;
+  const { gset, members, joinGroup, goToStep, inviteCode, inviteInfo, operationError } = flow;
   const host = members.find((m) => m.role === 'host') || {};
-  const full = members.length >= (gset.memberTarget || 6);
-  const invalidCode = Boolean(inviteCode) && inviteCode !== defaultGroup.inviteCode;
+  const full = inviteInfo ? !inviteInfo.joinable : members.length >= (gset.memberTarget || 6);
+  const invalidCode = Boolean(inviteCode) && !inviteInfo && Boolean(operationError) && inviteCode !== defaultGroup.inviteCode;
 
   if (invalidCode || full) {
     return (
@@ -64,6 +64,7 @@ export function InvitePage({ flow }) {
               <span className="muted-sm">{members.length}/6명 참여 중</span>
             </div>
             <button type="button" className="button primary full" onClick={joinGroup}>참여하시겠어요?</button>
+            {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
             {full ? <p className="error-text center">인원이 가득 찼어요 (최대 6명)</p> : null}
             <button type="button" className="link-btn muted" onClick={() => goToStep('login')}>나중에 할게요</button>
           </div>

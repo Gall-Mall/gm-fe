@@ -19,6 +19,7 @@ export function subscribeVoteSession(
   onEvent,
   {
     brokerUrl = defaultBrokerUrl(),
+    accessToken = '',
     ClientClass = Client,
     connectionTimeoutMs = 5000,
   } = {},
@@ -39,6 +40,7 @@ export function subscribeVoteSession(
 
     const client = new ClientClass({
       brokerURL: brokerUrl,
+      connectHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       reconnectDelay: 5000,
       onConnect: () => {
         subscription = client.subscribe(

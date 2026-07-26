@@ -16,7 +16,7 @@ export function DashboardPage({ flow }) {
   const voteStartLabel = voteStartStatus === 'creating'
     ? '투표방 만드는 중...'
     : voteStartStatus === 'connecting'
-      ? 'WebSocket 연결 중...'
+      ? '추천 메뉴 불러오는 중...'
       : `투표 시작하기 (${limitLabel})`;
 
   return (

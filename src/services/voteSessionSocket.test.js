@@ -26,10 +26,14 @@ describe('subscribeVoteSession', () => {
 
     const connection = await subscribeVoteSession('session-1', onEvent, {
       brokerUrl: 'ws://localhost:8080/ws',
+      accessToken: 'access-token',
       ClientClass: FakeClient,
     });
 
     expect(FakeClient.latest.config.brokerURL).toBe('ws://localhost:8080/ws');
+    expect(FakeClient.latest.config.connectHeaders).toEqual({
+      Authorization: 'Bearer access-token',
+    });
     expect(FakeClient.latest.destination).toBe('/topic/vote-sessions/session-1');
 
     FakeClient.latest.messageCallback({ body: JSON.stringify({ type: 'MENU_CANDIDATES_READY' }) });

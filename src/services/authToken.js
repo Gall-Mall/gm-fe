@@ -1,9 +1,9 @@
-// 액세스 토큰 저장소 (localStorage). OAuth/토큰 발급 후 저장, 로그아웃 시 제거.
-const TOKEN_KEY = 'galae-access-token';
+// 액세스 토큰은 탭 세션에만 보관한다. Refresh Token은 백엔드의 HTTP-only 쿠키가 관리한다.
+const TOKEN_KEY = 'gm-access-token';
 
 export function getAccessToken() {
   try {
-    return window.localStorage.getItem(TOKEN_KEY);
+    return window.sessionStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
@@ -11,8 +11,8 @@ export function getAccessToken() {
 
 export function setAccessToken(token) {
   try {
-    if (token) window.localStorage.setItem(TOKEN_KEY, token);
-    else window.localStorage.removeItem(TOKEN_KEY);
+    if (token) window.sessionStorage.setItem(TOKEN_KEY, token);
+    else window.sessionStorage.removeItem(TOKEN_KEY);
   } catch {
     /* 저장 실패는 무시 */
   }

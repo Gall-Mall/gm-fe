@@ -1,11 +1,38 @@
 import { apiRequest } from './apiClient';
 
-// GET /api/groups/{groupId}/vote-sessions/{voteSessionId}/menu-candidates
-// 현재 라운드의 메뉴 후보 목록 조회
-export async function getMenuCandidates(groupId, voteSessionId, options = {}) {
+function sessionPath(groupId, voteSessionId) {
   if (!groupId || !voteSessionId) throw new Error('groupId와 voteSessionId가 필요합니다.');
-  return apiRequest(`/api/groups/${groupId}/vote-sessions/${voteSessionId}/menu-candidates`, {
-    failMessage: '메뉴 후보를 불러오지 못했습니다.',
-    ...options,
+  return `/api/groups/${groupId}/vote-sessions/${voteSessionId}`;
+}
+
+export function getMenuCandidates(groupId, voteSessionId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates`, {
+    failMessage: '메뉴 후보를 불러오지 못했습니다.', ...options,
+  });
+}
+
+export function startMenuRecommendation(groupId, voteSessionId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/recommendations`, {
+    method: 'POST', failMessage: '메뉴 추천을 시작하지 못했습니다.', ...options,
+  });
+}
+
+export function getVoteState(groupId, voteSessionId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/vote-state`, {
+    failMessage: '투표 상태를 불러오지 못했습니다.', ...options,
+  });
+}
+
+const MENU_VOTE_CHOICE = Object.freeze({ like: 'GO', maybe: 'MAYBE', dislike: 'NO' });
+
+export function submitMenuVote(groupId, voteSessionId, candidateId, choice, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/${candidateId}/vote`, {
+    method: 'POST', body: { choice: MENU_VOTE_CHOICE[choice] || choice }, failMessage: '메뉴 투표를 저장하지 못했습니다.', ...options,
+  });
+}
+
+export function closeMenuVote(groupId, voteSessionId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/close`, {
+    method: 'PUT', failMessage: '메뉴 투표를 마감하지 못했습니다.', ...options,
   });
 }

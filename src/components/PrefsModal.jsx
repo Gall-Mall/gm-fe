@@ -14,7 +14,7 @@ export function PrefsModal({ flow }) {
     setPrefsOpen, prefsTab, setPrefsTab,
     allergens, setAllergens, aiAllergens, setAiAllergens,
     dislikeMenus, setDislikeMenus, aiExclusions, setAiExclusions,
-    likeMenus, setLikeMenus, aiLikes, setAiLikes, analyzeText,
+    likeMenus, setLikeMenus, aiLikes, setAiLikes, analyzeText, savePreferences, operationError,
   } = flow;
 
   const toggle = (list, setList, v) => setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -69,8 +69,9 @@ export function PrefsModal({ flow }) {
           ) : null}
         </div>
         <div className="modal-foot">
-          <button type="button" className="button primary full" onClick={() => setPrefsOpen(false)}>완료</button>
+          <button type="button" className="button primary full" onClick={savePreferences}>완료</button>
         </div>
+        {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
       </div>
     </div>
   );

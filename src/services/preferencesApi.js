@@ -1,37 +1,17 @@
-const defaultBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+import { apiRequest } from './apiClient';
 
-function trimTrailingSlash(value) {
-  return value.replace(/\/+$/, '');
-}
-
-async function readResponseBody(response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-async function postAnalyze(path, text, { baseUrl = defaultBaseUrl, fetcher = fetch } = {}) {
+async function postAnalyze(path, text, options = {}) {
   const trimmed = (text || '').trim();
   if (!trimmed) {
     throw new Error('분석할 텍스트를 입력해주세요.');
   }
 
-  const response = await fetcher(`${trimTrailingSlash(baseUrl)}${path}`, {
+  return apiRequest(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: trimmed }),
+    body: { text: trimmed },
+    failMessage: '분석에 실패했습니다.',
+    ...options,
   });
-  const body = await readResponseBody(response);
-
-  if (!response.ok) {
-    throw new Error(body?.message || body?.error?.message || `분석에 실패했습니다. (${response.status})`);
-  }
-  if (!body?.data) {
-    throw new Error('분석 응답에 data가 없습니다.');
-  }
-  return body.data;
 }
 
 /**

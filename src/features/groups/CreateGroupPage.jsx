@@ -5,7 +5,7 @@ import { KakaoMap } from '../../components/KakaoMap';
 import { normDistance, geocodePlace, reverseGeocode } from '../../utils/geo';
 
 export function CreateGroupPage({ flow }) {
-  const { goToStep, draft, setDraft, createGroup } = flow;
+  const { goToStep, draft, setDraft, createGroup, operationError } = flow;
   const canCreate = (draft.name || '').trim().length > 0;
   const [geoQuery, setGeoQuery] = useState('');
   const [geoStatus, setGeoStatus] = useState('idle');
@@ -132,6 +132,7 @@ export function CreateGroupPage({ flow }) {
         <button type="button" className="button ghost" onClick={() => goToStep('home')}>취소</button>
         <button type="button" className="button primary" onClick={createGroup} disabled={!canCreate}>그룹 만들고 시작하기</button>
       </div>
+      {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
     </main>
   );
 }

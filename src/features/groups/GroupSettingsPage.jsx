@@ -2,7 +2,7 @@ import { ArrowLeft, Users, MapPin } from 'lucide-react';
 import { normDistance } from '../../utils/geo';
 
 export function GroupSettingsPage({ flow }) {
-  const { goToStep, gset, setGset, members, isHost, delegateHost, kickMember } = flow;
+  const { goToStep, gset, setGset, members, isHost, delegateHost, kickMember, saveGroupSettings, operationError } = flow;
   const set = (patch) => setGset((g) => ({ ...g, ...patch }));
 
   return (
@@ -62,8 +62,9 @@ export function GroupSettingsPage({ flow }) {
       </section>
 
       <div className="page-actions">
-        <button type="button" className="button primary full" onClick={() => goToStep('dashboard')}>변경사항 저장</button>
+        <button type="button" className="button primary full" onClick={saveGroupSettings}>변경사항 저장</button>
       </div>
+      {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
     </main>
   );
 }

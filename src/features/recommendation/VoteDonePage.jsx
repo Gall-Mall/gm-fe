@@ -1,7 +1,7 @@
 import { Bell, Check, ChevronRight } from 'lucide-react';
 
 export function VoteDonePage({ flow }) {
-  const { goToStep, members, simAllVoted, setSimAllVoted, allMenusVoted, isHost, roundNumber } = flow;
+  const { goToStep, members, simAllVoted, closeMenuVoting, allMenusVoted, isHost, roundNumber } = flow;
   // 내 완료 = 모든 메뉴 투표 완료. 다른 멤버는 방장이 마감(simAllVoted)하면 완료 처리.
   const voteMembers = members.map((m) => ({
     name: m.name,
@@ -43,7 +43,7 @@ export function VoteDonePage({ flow }) {
           <>
             <div className="waiting"><span className="dot" />다른 멤버들의 투표를 기다리고 있어요</div>
             {isHost ? (
-              <button type="button" className="button ghost full" onClick={() => setSimAllVoted(true)}>남은 멤버 투표 마감하기 (방장)</button>
+              <button type="button" className="button ghost full" onClick={closeMenuVoting}>남은 멤버 투표 마감하기 (방장)</button>
             ) : null}
           </>
         )}

@@ -23,10 +23,10 @@ function flow(overrides = {}) {
 }
 
 describe('DashboardPage 투표 시작 상태', () => {
-  it('WebSocket 연결 중에는 시작 버튼을 비활성화한다', () => {
+  it('추천 메뉴를 불러오는 중에는 시작 버튼을 비활성화한다', () => {
     render(<DashboardPage flow={flow({ voteStartStatus: 'connecting' })} />);
 
-    const button = screen.getByRole('button', { name: 'WebSocket 연결 중...' });
+    const button = screen.getByRole('button', { name: '추천 메뉴 불러오는 중...' });
     expect(button.disabled).toBe(true);
   });
 

@@ -14,14 +14,17 @@ describe('createVoteSession', () => {
     const result = await createVoteSession(
       'group-1',
       { title: '오늘 메뉴 투표', likeKeyword: '매콤한', dislikeKeyword: null },
-      { baseUrl: 'http://localhost:8080', fetcher },
+      { baseUrl: 'http://localhost:8080', accessToken: 'access-token', fetcher },
     );
 
     expect(fetcher).toHaveBeenCalledWith(
       'http://localhost:8080/api/groups/group-1/vote-sessions',
       expect.objectContaining({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: 'Bearer access-token',
+          'Content-Type': 'application/json',
+        },
       }),
     );
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({
