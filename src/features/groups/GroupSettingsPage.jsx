@@ -2,16 +2,33 @@ import { ArrowLeft, Users, MapPin } from 'lucide-react';
 import { normDistance } from '../../utils/geo';
 
 export function GroupSettingsPage({ flow }) {
-  const { goToStep, gset, setGset, members, isHost, delegateHost, kickMember, saveGroupSettings, operationError } = flow;
+  const {
+    goToStep, gset, setGset, members, isHost, delegateHost, kickMember,
+    saveGroupSettings, deleteActiveGroup, groupDeleteStatus, operationError,
+  } = flow;
   const set = (patch) => setGset((g) => ({ ...g, ...patch }));
+  const deleting = groupDeleteStatus === 'deleting';
+
+  function confirmDeleteGroup() {
+    if (window.confirm('그룹을 삭제하면 되돌릴 수 없습니다. 정말 삭제할까요?')) {
+      deleteActiveGroup();
+    }
+  }
 
   return (
     <main className="screen page narrow">
       <button type="button" className="back-btn" onClick={() => goToStep('dashboard')}><ArrowLeft size={16} />대시보드</button>
-      <header className="page-head col">
-        <span className="tag">방장 전용</span>
-        <h1>그룹 설정</h1>
-        <p className="muted">그룹 정보와 멤버를 관리할 수 있어요.</p>
+      <header className="page-head settings-page-head">
+        <div className="settings-page-title">
+          <span className="tag">방장 전용</span>
+          <h1>그룹 설정</h1>
+          <p className="muted">그룹 정보와 멤버를 관리할 수 있어요.</p>
+        </div>
+        {isHost ? (
+          <button type="button" className="button danger" onClick={confirmDeleteGroup} disabled={deleting}>
+            {deleting ? '삭제 중...' : '그룹 삭제'}
+          </button>
+        ) : null}
       </header>
 
       <section className="card">

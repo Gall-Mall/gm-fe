@@ -12,7 +12,13 @@ import {
   submitMenuVote,
 } from '../services/menuCandidateApi';
 import { subscribeVoteSession } from '../services/voteSessionSocket';
-import { createGroup as createGroupApi, getGroup, listGroups, updateGroup } from '../services/groupApi';
+import {
+  createGroup as createGroupApi,
+  deleteGroup as deleteGroupRequest,
+  getGroup,
+  listGroups,
+  updateGroup,
+} from '../services/groupApi';
 import { createInviteLink, getInvite, joinInvite } from '../services/inviteApi';
 import { exchangeOAuthCode, logout as logoutApi, refreshToken } from '../services/authApi';
 import { getFoodSettings, getMe, submitOnboarding, updateFoodSettings } from '../services/userApi';
@@ -275,6 +281,7 @@ export function useAppFlow() {
   const [gset, setGset] = useState(saved.gset || defaultGset);
   const [groups, setGroups] = useState([]);
   const [activeGroupId, setActiveGroupId] = useState(saved.activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID || null);
+  const [groupDeleteStatus, setGroupDeleteStatus] = useState('idle');
   const [inviteInfo, setInviteInfo] = useState(null);
   const [inviteUrl, setInviteUrl] = useState('');
   const [operationError, setOperationError] = useState('');
@@ -720,6 +727,26 @@ export function useAppFlow() {
       setStep('dashboard');
     } catch (error) {
       setOperationError(error instanceof Error ? error.message : '그룹 설정을 저장하지 못했습니다.');
+    }
+  }
+
+  async function deleteActiveGroup() {
+    const groupId = activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID;
+    if (!groupId || !getAccessToken()) {
+      setOperationError(!groupId ? '삭제할 그룹이 없습니다.' : '로그인 정보가 없습니다.');
+      return;
+    }
+    setGroupDeleteStatus('deleting');
+    setOperationError('');
+    try {
+      await deleteGroupRequest(groupId);
+      setGroups((current) => current.filter((group) => (group.groupId || group.id) !== groupId));
+      setActiveGroupId(null);
+      setGroupDeleteStatus('idle');
+      setStep('groups');
+    } catch (error) {
+      setGroupDeleteStatus('failed');
+      setOperationError(error instanceof Error ? error.message : '그룹 삭제에 실패했습니다.');
     }
   }
 
@@ -1387,6 +1414,7 @@ export function useAppFlow() {
     draft, setDraft, createGroup,
     members, isHost, setIsHost, delegateHost, kickMember,
     gset, setGset, groups, activeGroupId, selectGroup, saveGroupSettings,
+    deleteActiveGroup, groupDeleteStatus,
     voteLimitMin, setVoteLimitMin, voteStartedAt, startVote, remainMs, voteClosed,
     voteSessionId, voteStartStatus, voteStartError, lastVoteSessionEvent,
     serverSessionStatus, finalMenuVote, syncVoteState,

@@ -75,6 +75,7 @@ a:hover { color: var(--ink); }
 .page-head.col { flex-direction: column; gap: 6px; }
 .page-head h1 { margin: 12px 0 6px; font-size: 30px; font-weight: 900; letter-spacing: -.01em; }
 .page-head.col h1 { margin: 12px 0 6px; }
+.settings-page-title { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .page-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 .page-actions.center { justify-content: center; }
 .back-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--amber-deep); cursor: pointer; font-weight: 800; font-size: 14px; padding: 0; }
@@ -105,6 +106,7 @@ a:hover { color: var(--ink); }
 .button.full { width: 100%; min-height: 48px; }
 .button.primary { background: var(--amber); color: var(--ink); }
 .button.ghost { background: #fff; color: var(--amber-deep); border: 1px solid rgba(120,86,20,.24); }
+.button.danger { background: #fff5f1; color: var(--danger); border: 1px solid rgba(192,80,63,.28); }
 .button.disabled, .button:disabled { background: #f0e4d0; color: #b8a98f; cursor: not-allowed; }
 .button.square { min-height: 44px; width: 44px; padding: 0; }
 .button.square-lg { min-height: 48px; width: 48px; padding: 0; }

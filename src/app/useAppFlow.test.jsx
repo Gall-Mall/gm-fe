@@ -12,7 +12,13 @@ import {
   submitMenuVote,
 } from '../services/menuCandidateApi';
 import { subscribeVoteSession } from '../services/voteSessionSocket';
-import { createGroup as createGroupRequest, getGroup, listGroups, updateGroup } from '../services/groupApi';
+import {
+  createGroup as createGroupRequest,
+  deleteGroup as deleteGroupRequest,
+  getGroup,
+  listGroups,
+  updateGroup,
+} from '../services/groupApi';
 import { createInviteLink, getInvite, joinInvite } from '../services/inviteApi';
 import { getFoodSettings, getMe, submitOnboarding, updateFoodSettings } from '../services/userApi';
 import { exchangeOAuthCode } from '../services/authApi';
@@ -42,7 +48,7 @@ vi.mock('../services/voteSessionSocket', () => ({
   subscribeVoteSession: vi.fn(),
 }));
 vi.mock('../services/groupApi', () => ({
-  createGroup: vi.fn(), getGroup: vi.fn(), listGroups: vi.fn(), updateGroup: vi.fn(),
+  createGroup: vi.fn(), deleteGroup: vi.fn(), getGroup: vi.fn(), listGroups: vi.fn(), updateGroup: vi.fn(),
 }));
 vi.mock('../services/inviteApi', () => ({
   createInviteLink: vi.fn(), getInvite: vi.fn(), joinInvite: vi.fn(),
@@ -84,6 +90,19 @@ afterEach(() => {
 });
 
 describe('useAppFlow 백엔드 플로우', () => {
+  it('활성 그룹을 삭제하면 그룹 목록으로 이동한다', async () => {
+    vi.stubEnv('VITE_ACTIVE_GROUP_ID', 'group-1');
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    deleteGroupRequest.mockResolvedValue(null);
+    const { result } = renderHook(() => useAppFlow());
+
+    await act(async () => result.current.deleteActiveGroup());
+
+    expect(deleteGroupRequest).toHaveBeenCalledWith('group-1');
+    expect(result.current.activeGroupId).toBeNull();
+    expect(result.current.step).toBe('groups');
+  });
+
   it('해당 그룹 기록 화면으로 이동하면 지난 식사를 그 그룹만 표시한다', async () => {
     window.sessionStorage.setItem('gm-access-token', 'access-token');
     listPreviousGroups.mockResolvedValue({

@@ -21,3 +21,10 @@ export function updateGroup(groupId, payload, options = {}) {
     method: 'PUT', body: payload, failMessage: '그룹 수정에 실패했습니다.', ...options,
   });
 }
+
+export function deleteGroup(groupId, options = {}) {
+  if (!groupId) throw new Error('groupId가 없습니다.');
+  return apiRequest(`/api/groups/${groupId}`, {
+    method: 'DELETE', failMessage: '그룹 삭제에 실패했습니다.', ...options,
+  });
+}

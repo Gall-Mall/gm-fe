@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exchangeOAuthCode } from './authApi';
-import { createGroup, getGroup, listGroups, updateGroup } from './groupApi';
+import { createGroup, deleteGroup, getGroup, listGroups, updateGroup } from './groupApi';
 import { createInviteLink, getInvite, joinInvite } from './inviteApi';
 import {
   getFoodSettings,
@@ -86,7 +86,7 @@ describe('backend REST contracts', () => {
     );
   });
 
-  it('그룹 목록·생성·상세·수정 API 계약을 사용한다', async () => {
+  it('그룹 목록·생성·상세·수정·삭제 API 계약을 사용한다', async () => {
     const fetcher = successfulFetcher();
     const group = { name: '모임', locationAddress: '강남', latitude: 37.5, longitude: 127, searchRadiusM: 2000, recommendationTime: '18:00', maxMemberCount: 4 };
 
@@ -94,12 +94,14 @@ describe('backend REST contracts', () => {
     await createGroup(group, { baseUrl: BASE, fetcher });
     await getGroup('group-id', { baseUrl: BASE, fetcher });
     await updateGroup('group-id', group, { baseUrl: BASE, fetcher });
+    await deleteGroup('group-id', { baseUrl: BASE, fetcher });
 
     expect(fetcher.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
       [`${BASE}/api/groups?page=0&size=20`, 'GET'],
       [`${BASE}/api/groups`, 'POST'],
       [`${BASE}/api/groups/group-id`, 'GET'],
       [`${BASE}/api/groups/group-id`, 'PUT'],
+      [`${BASE}/api/groups/group-id`, 'DELETE'],
     ]);
   });
 
