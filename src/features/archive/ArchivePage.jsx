@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { Plus, Users } from 'lucide-react';
 
 export function ArchivePage({ flow }) {
-  const { archiveGroups, openMeal, goToStep } = flow;
+  const { archiveGroups, openMeal, goToStep, loadHistory, historyStatus, operationError } = flow;
+  useEffect(() => {
+    loadHistory();
+    // 기록 화면에 처음 진입할 때 한 번만 서버 상태를 조회한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <main className="screen page">
       <div className="page-head">
@@ -14,9 +20,12 @@ export function ArchivePage({ flow }) {
       </div>
 
       <div className="archive-groups">
+        {historyStatus === 'loading' ? <div className="waiting-box"><span className="waiting-spinner" /><span>지난 기록을 불러오는 중이에요</span></div> : null}
+        {historyStatus !== 'loading' && archiveGroups.length === 0 ? <div className="waiting-box"><span>아직 완료된 식사 기록이 없어요.</span></div> : null}
+        {operationError ? <p className="alert-warn">{operationError}</p> : null}
         {archiveGroups.map((g) => {
           const count = g.meals.length;
-          const avg = Math.round(g.meals.reduce((s, m) => s + m.score, 0) / count);
+          const avg = count ? Math.round(g.meals.reduce((s, m) => s + m.score, 0) / count) : 0;
           return (
             <section className="archive-group" key={g.group}>
               <div className="archive-group-head">

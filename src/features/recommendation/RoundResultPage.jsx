@@ -32,18 +32,21 @@ export function RoundResultPage({ flow }) {
     decisionVote, closeDecision, confirmMenu, reRecommend, recommending,
     myDecisionChoice, decisionDoneCount, decisionTotal, decisionClosed, decisionAllDone, decisionTally, decisionOutcome,
     selectedFinalMenuId, setSelectedFinalMenuId, roundNumber,
+    voteStartStatus, finalMenuVote, submitFinalVote, selectFinalCandidate, requestReRecommendation,
   } = flow;
+  const isReal = voteStartStatus === 'connected';
 
   const [initDone, setInitDone] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   // 최초 진입 시 mock 판정값으로 후보 초기화(후보 유지 수, 최대 3)
   useEffect(() => {
-    if (!initDone) {
+    if (!initDone && !isReal) {
       setRoundCandidates(Math.min(3, roundSummary.kept));
       setInitDone(true);
     }
-  }, [initDone, roundSummary.kept, setRoundCandidates]);
+    if (!initDone && isReal) setInitDone(true);
+  }, [initDone, isReal, roundSummary.kept, setRoundCandidates]);
 
   // 전원 완료 시 자동 마감(1.2초 유예 — 그 전엔 선택 변경 가능, 변경 시 타이머 리셋)
   useEffect(() => {
@@ -67,13 +70,13 @@ export function RoundResultPage({ flow }) {
           {candidateCount === 0 && '아직 적합한 메뉴를 찾지 못했어요'}
           {candidateCount === 1 && '후보가 하나 나왔어요'}
           {candidateCount === 2 && '두 메뉴 중 하나를 골라주세요'}
-          {candidateCount === 3 && (isHost ? '최종 후보 3개가 모였어요' : '최종 후보 3개가 모였어요')}
+          {candidateCount >= 3 && `최종 후보 ${candidateCount}개가 모였어요`}
         </h1>
         <p className="muted">
           {candidateCount === 0 && '새로운 메뉴를 다시 추천받아 볼까요?'}
           {candidateCount === 1 && '이 메뉴로 갈까요, 다시 추천받을까요?'}
           {candidateCount === 2 && '최다 득표 메뉴가 오늘의 메뉴로 정해져요.'}
-          {candidateCount === 3 && (isHost ? '오늘의 메뉴를 하나 선택해 주세요.' : '방장이 최종 메뉴를 고르는 중이에요.')}
+          {candidateCount >= 3 && (isHost ? '오늘의 메뉴를 하나 선택해 주세요.' : '방장이 최종 메뉴를 고르는 중이에요.')}
         </p>
       </header>
 
@@ -89,6 +92,12 @@ export function RoundResultPage({ flow }) {
         <section className="card decide-card">
           {recommending ? (
             <div className="loading-box"><Loader size={26} className="spin" /><p>새로운 메뉴를 추천받는 중이에요…</p></div>
+          ) : isReal ? (
+            isHost ? (
+              <button type="button" className="button primary full" onClick={requestReRecommendation}><RefreshCw size={16} /><span>새 메뉴 추천받기</span></button>
+            ) : (
+              <WaitingBox text="방장이 새 메뉴를 준비하고 있어요" />
+            )
           ) : isHost ? (
             <button type="button" className="button primary full" onClick={reRecommend}><RefreshCw size={16} /><span>새 메뉴 추천받기</span></button>
           ) : (
@@ -103,6 +112,13 @@ export function RoundResultPage({ flow }) {
           <CandidateCard m={c0} big />
           {recommending ? (
             <div className="loading-box"><Loader size={26} className="spin" /><p>새로운 메뉴를 추천받는 중이에요…</p></div>
+          ) : isReal ? (
+            isHost ? (
+              <div className="decide-actions two">
+                <button type="button" className="decide-btn go" onClick={() => selectFinalCandidate(c0.id)}>이 메뉴로 확정</button>
+                <button type="button" className="decide-btn again" onClick={requestReRecommendation}>다시 추천받기</button>
+              </div>
+            ) : <WaitingBox text="방장이 메뉴를 확정하거나 재추천을 선택하고 있어요" />
           ) : !decisionClosed ? (
             <>
               <div className="decide-actions two">
@@ -135,10 +151,20 @@ export function RoundResultPage({ flow }) {
       {candidateCount === 2 && c0 && c1 ? (
         <section className="card decide-card">
           <div className="candidate-two">
-            <CandidateCard m={c0} selected={myDecisionChoice === c0.id} onSelect={() => decisionVote(c0.id)} readOnly={decisionClosed} />
-            <CandidateCard m={c1} selected={myDecisionChoice === c1.id} onSelect={() => decisionVote(c1.id)} readOnly={decisionClosed} />
+            <CandidateCard m={c0} selected={myDecisionChoice === c0.id} onSelect={() => (isReal ? submitFinalVote(c0.id) : decisionVote(c0.id))} readOnly={!isReal && decisionClosed} />
+            <CandidateCard m={c1} selected={myDecisionChoice === c1.id} onSelect={() => (isReal ? submitFinalVote(c1.id) : decisionVote(c1.id))} readOnly={!isReal && decisionClosed} />
           </div>
-          {!decisionClosed ? (
+          {isReal ? (
+            finalMenuVote?.status === 'TIED' ? (
+              <div className="decide-result">
+                <div className="alert-warn"><span className="alert-icon"><AlertTriangle size={18} /></span><div><strong>동점이에요</strong><small>{isHost ? '방장이 두 후보 중 하나를 선택해주세요.' : '방장이 최종 메뉴를 정하는 중이에요.'}</small></div></div>
+                {isHost ? <div className="decide-actions two">
+                  <button type="button" className="decide-btn" onClick={() => selectFinalCandidate(c0.id)}>{c0.name}(으)로</button>
+                  <button type="button" className="decide-btn" onClick={() => selectFinalCandidate(c1.id)}>{c1.name}(으)로</button>
+                </div> : <WaitingBox text="방장이 최종 메뉴를 선택하고 있어요" />}
+              </div>
+            ) : <WaitingBox text="그룹원들의 최종 메뉴 투표를 기다리고 있어요" />
+          ) : !decisionClosed ? (
             <>
               <p className="muted-sm center">{decisionAllDone ? '전원 완료 · 곧 마감돼요' : `${decisionDoneCount}/${decisionTotal}명 투표 완료 · 마감 전 변경할 수 있어요`}</p>
               {isHost && decisionDoneCount >= 1 ? (
@@ -167,7 +193,7 @@ export function RoundResultPage({ flow }) {
       ) : null}
 
       {/* 후보 3개 — 방장 단일 선택 (멤버 재투표 없음) */}
-      {candidateCount === 3 ? (
+      {candidateCount >= 3 ? (
         <section className="card decide-card">
           {isHost ? (
             <>
@@ -193,12 +219,6 @@ export function RoundResultPage({ flow }) {
         </section>
       ) : null}
 
-      {isHost && !recommending && (candidateCount === 2 || candidateCount === 3) ? (
-        <button type="button" className="reroll-btn" onClick={reRecommend}>
-          <RefreshCw size={14} /> 마음에 드는 후보가 없어요 · 새 메뉴로 다시 투표
-        </button>
-      ) : null}
-
       {confirmOpen && hostSelected ? (
         <div className="modal-overlay" onClick={() => setConfirmOpen(false)}>
           <div className="modal-card confirm-panel" onClick={(e) => e.stopPropagation()}>
@@ -206,7 +226,7 @@ export function RoundResultPage({ flow }) {
             <p className="muted">결정하면 이 메뉴로 근처 식당 찾기로 넘어가요.</p>
             <div className="confirm-actions">
               <button type="button" className="button ghost" onClick={() => setConfirmOpen(false)}>취소</button>
-              <button type="button" className="button primary" onClick={() => { setConfirmOpen(false); confirmMenu(hostSelected.id, 'host'); }}>결정하기</button>
+              <button type="button" className="button primary" onClick={() => { setConfirmOpen(false); if (isReal) selectFinalCandidate(hostSelected.id); else confirmMenu(hostSelected.id, 'host'); }}>결정하기</button>
             </div>
           </div>
         </div>

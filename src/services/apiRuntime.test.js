@@ -12,8 +12,10 @@ describe('API 런타임 모드', () => {
     window.sessionStorage.clear();
   });
 
-  it('설정이 없으면 실제 API를 시도하고 실패 시 mock을 쓰는 hybrid 모드다', () => {
-    expect(resolveApiMode()).toBe(API_MODE.HYBRID);
+  it('설정값과 관계없이 실제 API 전용 모드로 동작한다', () => {
+    expect(resolveApiMode()).toBe(API_MODE.REAL);
+    expect(resolveApiMode('mock')).toBe(API_MODE.REAL);
+    expect(resolveApiMode('hybrid')).toBe(API_MODE.REAL);
   });
 
   it('개발용 Access Token은 브라우저 세션에서 읽는다', () => {
@@ -22,16 +24,16 @@ describe('API 런타임 모드', () => {
     expect(getAccessToken()).toBe('access-token');
   });
 
-  it('hybrid 모드에서 실제 API가 실패하면 mock 결과를 반환한다', async () => {
-    const mockAction = vi.fn().mockReturnValue('mock-result');
+  it('hybrid 설정이어도 실제 API 실패를 mock으로 대체하지 않는다', async () => {
+    const mockAction = vi.fn();
 
-    const result = await runWithApiFallback({
+    await expect(runWithApiFallback({
       mode: API_MODE.HYBRID,
       realAction: vi.fn().mockRejectedValue(new Error('API 실패')),
       mockAction,
-    });
+    })).rejects.toThrow('API 실패');
 
-    expect(result).toEqual({ source: 'mock', data: 'mock-result', fallbackReason: 'API 실패' });
+    expect(mockAction).not.toHaveBeenCalled();
   });
 
   it('real 모드에서는 실제 API 오류를 숨기지 않는다', async () => {
@@ -42,16 +44,18 @@ describe('API 런타임 모드', () => {
     })).rejects.toThrow('API 실패');
   });
 
-  it('mock 모드에서는 실제 API를 호출하지 않는다', async () => {
-    const realAction = vi.fn();
+  it('mock 설정이어도 실제 API만 호출한다', async () => {
+    const realAction = vi.fn().mockResolvedValue('real-result');
+    const mockAction = vi.fn();
 
     const result = await runWithApiFallback({
       mode: API_MODE.MOCK,
       realAction,
-      mockAction: () => 'mock-result',
+      mockAction,
     });
 
-    expect(realAction).not.toHaveBeenCalled();
-    expect(result).toEqual({ source: 'mock', data: 'mock-result', fallbackReason: null });
+    expect(realAction).toHaveBeenCalledTimes(1);
+    expect(mockAction).not.toHaveBeenCalled();
+    expect(result).toEqual({ source: 'real', data: 'real-result', fallbackReason: null });
   });
 });

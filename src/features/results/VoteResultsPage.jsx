@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import { CalendarPlus, MapPin, Check, Clock } from 'lucide-react';
-import { recommendationCandidates } from '../../data/appData';
 import { voteLabelByChoice, voteChoices } from '../../utils/vote';
 
 export function VoteResultsPage({ flow }) {
-  const { gset, groupRestaurants, restaurantVotes, confirmSchedule, isHost } = flow;
+  const { gset, groupRestaurants, restaurantVotes, restaurantCandidates, confirmSchedule, isHost, operationError } = flow;
 
   const [finalRestId, setFinalRestId] = useState(groupRestaurants[0] || null);
   const [time, setTime] = useState(gset.recTime || '18:00');
 
   const pool = groupRestaurants.length
-    ? recommendationCandidates.filter((c) => groupRestaurants.includes(c.id))
-    : recommendationCandidates;
+    ? restaurantCandidates.filter((c) => groupRestaurants.includes(c.id))
+    : restaurantCandidates;
 
   const ranked = [...pool]
     .map((c) => {
       const v = restaurantVotes[c.id] || { like: 0, maybe: 0, dislike: 0 };
       return { ...c, v, total: v.like + v.maybe + v.dislike };
     })
-    .sort((a, b) => b.v.like - a.v.like || b.score - a.score);
+    .sort((a, b) => b.v.like - a.v.like || (b.score || 0) - (a.score || 0));
 
   const finalRest = ranked.find((c) => c.id === finalRestId) || null;
 
@@ -58,6 +57,8 @@ export function VoteResultsPage({ flow }) {
           );
         })}
       </div>
+      {!ranked.length ? <div className="waiting-box"><span>아직 식당 검색 결과가 없어요.</span></div> : null}
+      {operationError ? <p className="alert-warn">{operationError}</p> : null}
 
       {isHost ? (
         <>

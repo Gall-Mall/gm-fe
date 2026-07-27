@@ -1,11 +1,11 @@
 import { MapPin, Clock, Unlink } from 'lucide-react';
-import { heroImage, defaultGroup } from '../../data/appData';
+import { heroImage } from '../../data/appData';
 
 export function InvitePage({ flow }) {
   const { gset, members, joinGroup, goToStep, inviteCode, inviteInfo, operationError } = flow;
   const host = members.find((m) => m.role === 'host') || {};
   const full = inviteInfo ? !inviteInfo.joinable : members.length >= (gset.memberTarget || 6);
-  const invalidCode = Boolean(inviteCode) && !inviteInfo && Boolean(operationError) && inviteCode !== defaultGroup.inviteCode;
+  const invalidCode = Boolean(inviteCode) && !inviteInfo && Boolean(operationError);
 
   if (invalidCode || full) {
     return (

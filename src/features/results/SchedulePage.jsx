@@ -1,5 +1,4 @@
 import { ClipboardList, CircleCheck } from 'lucide-react';
-import { scheduleItems } from '../../data/appData';
 
 export function SchedulePage({ flow }) {
   const { goToStep, savedSchedule } = flow;
@@ -26,17 +25,11 @@ export function SchedulePage({ flow }) {
         </section>
       ) : null}
 
-      <section className="card">
-        <h2 className="section-sub-title">전체 일정</h2>
-        <div className="schedule">
-          {scheduleItems.map((s) => (
-            <article className="schedule-row" key={s.time}>
-              <time>{s.time}</time>
-              <div><h3>{s.title}</h3><p className="muted-sm">{s.detail}</p></div>
-            </article>
-          ))}
-        </div>
-      </section>
+      {!savedSchedule ? (
+        <section className="card waiting-box">
+          <span>아직 확정된 식사 일정이 없어요.</span>
+        </section>
+      ) : null}
 
       <div className="page-actions">
         <button type="button" className="button ghost" onClick={() => goToStep('archive')}><ClipboardList size={16} /><span>지난 식사 보기</span></button>

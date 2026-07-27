@@ -27,12 +27,30 @@ const MENU_VOTE_CHOICE = Object.freeze({ like: 'GO', maybe: 'MAYBE', dislike: 'N
 
 export function submitMenuVote(groupId, voteSessionId, candidateId, choice, options = {}) {
   return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/${candidateId}/vote`, {
-    method: 'POST', body: { choice: MENU_VOTE_CHOICE[choice] || choice }, failMessage: '메뉴 투표를 저장하지 못했습니다.', ...options,
+    method: 'PUT', body: { choice: MENU_VOTE_CHOICE[choice] || choice }, failMessage: '메뉴 투표를 저장하지 못했습니다.', ...options,
   });
 }
 
 export function closeMenuVote(groupId, voteSessionId, options = {}) {
   return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/close`, {
     method: 'PUT', failMessage: '메뉴 투표를 마감하지 못했습니다.', ...options,
+  });
+}
+
+export function submitFinalMenuVote(groupId, voteSessionId, candidateId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/${candidateId}/final-vote`, {
+    method: 'PUT', failMessage: '최종 메뉴 투표를 저장하지 못했습니다.', ...options,
+  });
+}
+
+export function selectFinalMenu(groupId, voteSessionId, candidateId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/${candidateId}/final-selection`, {
+    method: 'PUT', failMessage: '최종 메뉴를 확정하지 못했습니다.', ...options,
+  });
+}
+
+export function reRecommendMenu(groupId, voteSessionId, options = {}) {
+  return apiRequest(`${sessionPath(groupId, voteSessionId)}/menu-candidates/re-recommend`, {
+    method: 'PUT', failMessage: '메뉴 재추천을 시작하지 못했습니다.', ...options,
   });
 }

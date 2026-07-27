@@ -13,14 +13,18 @@ const PIN_SRC = `data:image/svg+xml,${PIN_SVG}`;
 // 위치 선택용 지도(단일 핀 드래그·클릭) 또는 읽기전용 다중 마커 지도.
 // - 선택 모드: onPick(lat,lng) 전달
 // - 표시 모드: markers=[{lat,lng,label}] 전달
-export function KakaoMap({ center, onPick, markers = null, height = 220 }) {
+export function KakaoMap({ center, onPick, markers = null, focus = null, height = 220 }) {
   const readOnly = Array.isArray(markers);
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const kakaoRef = useRef(null);
+  const markerImageRef = useRef(null);
+  const displayObjectsRef = useRef([]);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
   const [failed, setFailed] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -30,29 +34,14 @@ export function KakaoMap({ center, onPick, markers = null, height = 220 }) {
         const pos = new kakao.maps.LatLng(center.lat, center.lng);
         const map = new kakao.maps.Map(elRef.current, { center: pos, level: 4 });
         mapRef.current = map;
+        kakaoRef.current = kakao;
 
         const image = new kakao.maps.MarkerImage(PIN_SRC, new kakao.maps.Size(28, 40), {
           offset: new kakao.maps.Point(14, 40),
         });
+        markerImageRef.current = image;
 
-        if (readOnly) {
-          const bounds = new kakao.maps.LatLngBounds();
-          markers.forEach((mk) => {
-            const p = new kakao.maps.LatLng(mk.lat, mk.lng);
-            const marker = new kakao.maps.Marker({ position: p, image });
-            marker.setMap(map);
-            bounds.extend(p);
-            if (mk.label) {
-              const ov = new kakao.maps.CustomOverlay({
-                position: p,
-                yAnchor: 2.2,
-                content: `<span class="map-pin-label">${mk.label}</span>`,
-              });
-              ov.setMap(map);
-            }
-          });
-          if (markers.length) map.setBounds(bounds);
-        } else {
+        if (!readOnly) {
           const marker = new kakao.maps.Marker({ position: pos, draggable: true, image });
           marker.setMap(map);
           markerRef.current = marker;
@@ -64,6 +53,7 @@ export function KakaoMap({ center, onPick, markers = null, height = 220 }) {
           });
         }
 
+        setMapReady(true);
         window.setTimeout(() => map.relayout(), 60);
       })
       .catch(() => {
@@ -74,6 +64,53 @@ export function KakaoMap({ center, onPick, markers = null, height = 220 }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 표시 모드: 비동기로 검색 결과가 도착하거나 변경되면 기존 마커를 교체한다.
+  useEffect(() => {
+    if (!readOnly || !mapReady) return undefined;
+    const kakao = kakaoRef.current;
+    const map = mapRef.current;
+    if (!kakao || !map) return undefined;
+
+    displayObjectsRef.current.forEach((object) => object.setMap(null));
+    displayObjectsRef.current = [];
+
+    const bounds = new kakao.maps.LatLngBounds();
+    markers
+      .filter((marker) => Number.isFinite(marker.lat) && Number.isFinite(marker.lng))
+      .forEach((mk) => {
+        const position = new kakao.maps.LatLng(mk.lat, mk.lng);
+        const marker = new kakao.maps.Marker({
+          position,
+          image: markerImageRef.current,
+        });
+        marker.setMap(map);
+        displayObjectsRef.current.push(marker);
+        bounds.extend(position);
+
+        if (typeof mk.url === 'string' && /^https?:\/\//i.test(mk.url)) {
+          kakao.maps.event.addListener(marker, 'click', () => {
+            window.open(mk.url, '_blank', 'noopener,noreferrer');
+          });
+        }
+
+        if (mk.label) {
+          const label = document.createElement('span');
+          label.className = 'map-pin-label';
+          label.textContent = mk.label;
+          const overlay = new kakao.maps.CustomOverlay({
+            position,
+            yAnchor: 2.2,
+            content: label,
+          });
+          overlay.setMap(map);
+          displayObjectsRef.current.push(overlay);
+        }
+      });
+    if (displayObjectsRef.current.length) map.setBounds(bounds);
+
+    return undefined;
+  }, [mapReady, markers, readOnly]);
 
   // 선택 모드: 외부에서 center 변경(검색) 시 지도/핀 이동
   useEffect(() => {
@@ -87,6 +124,24 @@ export function KakaoMap({ center, onPick, markers = null, height = 220 }) {
       marker.setPosition(pos);
     }
   }, [center.lat, center.lng, readOnly]);
+
+  // 표시 모드: 외부 목록에서 식당을 누르면 해당 마커 위치로 확대 이동한다.
+  useEffect(() => {
+    if (!readOnly || !mapReady || !focus) return;
+    if (!Number.isFinite(focus.lat) || !Number.isFinite(focus.lng)) return;
+    const kakao = kakaoRef.current;
+    const map = mapRef.current;
+    if (!kakao || !map) return;
+    const position = new kakao.maps.LatLng(focus.lat, focus.lng);
+    map.setLevel(2);
+    if (typeof map.panTo === 'function') map.panTo(position);
+    else map.setCenter(position);
+  }, [focus?.lat, focus?.lng, mapReady, readOnly]);
+
+  useEffect(() => () => {
+    displayObjectsRef.current.forEach((object) => object.setMap(null));
+    displayObjectsRef.current = [];
+  }, []);
 
   if (failed) {
     return (
