@@ -380,7 +380,9 @@ a:hover { color: var(--ink); }
 
 /* ---------- Archive ---------- */
 .archive-groups { display: grid; gap: 38px; }
-.archive-group-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line-soft); }
+.archive-group-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; width: 100%; padding: 0 0 14px; margin-bottom: 20px; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.archive-group-head:hover { border-bottom-color: var(--amber); }
+.archive-group-head:focus-visible { outline: 2px solid var(--amber); outline-offset: 4px; border-radius: 4px; }
 .group-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--like-bg); color: var(--amber-deep); }
 .archive-group-head h2 { margin: 0; font-size: 20px; font-weight: 900; }
 .meal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }

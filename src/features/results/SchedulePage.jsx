@@ -1,7 +1,7 @@
 import { ClipboardList, CircleCheck } from 'lucide-react';
 
 export function SchedulePage({ flow }) {
-  const { goToStep, savedSchedule } = flow;
+  const { activeGroupId, goToStep, openGroupHistory, savedSchedule } = flow;
 
   return (
     <main className="screen page narrow">
@@ -33,7 +33,8 @@ export function SchedulePage({ flow }) {
 
       <div className="page-actions">
         <button type="button" className="button ghost" onClick={() => goToStep('archive')}><ClipboardList size={16} /><span>지난 식사 보기</span></button>
-        <button type="button" className="button primary" onClick={() => goToStep('dashboard')}>대시보드로</button>
+        {/* 해당 그룹 식사 내역으로 이동 */}
+        <button type="button" className="button primary" onClick={() => openGroupHistory(activeGroupId)}>해당 그룹 식사 내역으로 이동</button>
       </div>
     </main>
   );

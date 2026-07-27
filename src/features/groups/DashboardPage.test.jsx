@@ -1,6 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DashboardPage } from './DashboardPage';
+
+afterEach(cleanup);
 
 function flow(overrides = {}) {
   return {
@@ -18,6 +20,8 @@ function flow(overrides = {}) {
     voteStartError: '',
     copied: 'idle',
     handleCopy: vi.fn(),
+    activeGroupId: 'group-1',
+    openGroupHistory: vi.fn(),
     ...overrides,
   };
 }
@@ -37,5 +41,14 @@ describe('DashboardPage 투표 시작 상태', () => {
     })} />);
 
     expect(screen.getByRole('alert').textContent).toContain('WebSocket 연결에 실패했습니다.');
+  });
+
+  it('지난 식사 버튼을 누르면 해당 그룹 식사 내역으로 이동한다', () => {
+    const pageFlow = flow();
+    const page = render(<DashboardPage flow={pageFlow} />);
+
+    fireEvent.click(page.getByRole('button', { name: '해당 그룹 식사 내역으로 이동' }));
+
+    expect(pageFlow.openGroupHistory).toHaveBeenCalledWith('group-1');
   });
 });

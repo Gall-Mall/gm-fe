@@ -48,9 +48,6 @@ export function Header({ flow }) {
         <button aria-label="내 그룹" className="icon-button" onClick={() => goToStep('groups')} type="button">
           <Search size={17} />
         </button>
-        <button aria-label="대시보드" className="icon-button" onClick={() => goToStep('dashboard')} type="button">
-          <Bell size={17} />
-        </button>
         <div className="profile-wrap">
           <button className="avatar-button" type="button" aria-label="내 정보" onClick={() => setProfileOpen(!profileOpen)}>
             {profile.photo ? <span className="avatar-img" style={{ backgroundImage: `url(${profile.photo})` }} /> : <span>{initial}</span>}

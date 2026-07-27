@@ -84,6 +84,23 @@ afterEach(() => {
 });
 
 describe('useAppFlow 백엔드 플로우', () => {
+  it('해당 그룹 기록 화면으로 이동하면 지난 식사를 그 그룹만 표시한다', async () => {
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    listPreviousGroups.mockResolvedValue({
+      previous: [
+        { groupId: 'group-1', name: '수정사항', voteSessions: [] },
+        { groupId: 'group-2', name: '멀티캠퍼스', voteSessions: [] },
+      ],
+    });
+    const { result } = renderHook(() => useAppFlow());
+
+    await act(async () => result.current.loadHistory());
+    act(() => result.current.openGroupHistory('group-1'));
+
+    expect(result.current.step).toBe('archive');
+    expect(result.current.archiveGroups.map((group) => group.groupId)).toEqual(['group-1']);
+  });
+
   it('mock 설정이어도 seed 그룹·멤버·메뉴·식당을 실행 상태에 적용하지 않는다', () => {
     vi.stubEnv('VITE_API_MODE', 'mock');
     const { result } = renderHook(() => useAppFlow());

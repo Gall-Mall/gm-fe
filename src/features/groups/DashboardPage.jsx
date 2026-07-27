@@ -9,6 +9,7 @@ export function DashboardPage({ flow }) {
     voteKeywords, addVoteKeyword, removeVoteKeyword,
     voteStartStatus, voteStartError,
     copied, handleCopy,
+    activeGroupId, openGroupHistory,
   } = flow;
   const [kw, setKw] = useState('');
   const limitLabel = voteLimitMin >= 60 ? `${voteLimitMin / 60}시간` : `${voteLimitMin}분`;
@@ -81,7 +82,8 @@ export function DashboardPage({ flow }) {
               </button>
             </div>
             <div className="inline-row wrap gap">
-              <button type="button" className="button ghost" onClick={() => goToStep('archive')}><ClipboardList size={16} /><span>지난 식사 모아보기</span></button>
+              {/* 해당 그룹 식사 내역으로 이동 */}
+              <button type="button" className="button ghost" aria-label="해당 그룹 식사 내역으로 이동" onClick={() => openGroupHistory(activeGroupId)}><ClipboardList size={16} /><span>지난 식사 모아보기</span></button>
               <button type="button" className="button ghost" onClick={() => goToStep('groupsettings')}><Settings size={16} /><span>그룹 설정</span></button>
             </div>
           </>
@@ -89,7 +91,8 @@ export function DashboardPage({ flow }) {
           <>
             <div className="notice"><span className="notice-icon"><Bell size={17} /></span><p>방장이 투표를 시작하면 카카오톡 알림으로 알려드려요.</p></div>
             <div className="inline-row wrap gap">
-              <button type="button" className="button ghost" onClick={() => goToStep('archive')}>지난 식사 모아보기</button>
+              {/* 해당 그룹 식사 내역으로 이동 */}
+              <button type="button" className="button ghost" aria-label="해당 그룹 식사 내역으로 이동" onClick={() => openGroupHistory(activeGroupId)}>지난 식사 모아보기</button>
             </div>
           </>
         )}

@@ -312,6 +312,7 @@ export function useAppFlow() {
   const [serverStores, setServerStores] = useState([]);
   const [restaurantSearchStatus, setRestaurantSearchStatus] = useState('idle');
   const [historyGroups, setHistoryGroups] = useState([]);
+  const [historyGroupFilterId, setHistoryGroupFilterId] = useState(null);
   const [historyStatus, setHistoryStatus] = useState('idle');
 
   const [copied, setCopied] = useState('idle');
@@ -467,7 +468,14 @@ export function useAppFlow() {
   }, [step, voteStartedAt]);
 
   function goToStep(next) {
+    if (next === 'archive') setHistoryGroupFilterId(null);
     setStep(next);
+  }
+
+  // 해당 그룹 식사 내역으로 이동
+  function openGroupHistory(groupId) {
+    setHistoryGroupFilterId(groupId || null);
+    setStep('archive');
   }
 
   function doLogin() {
@@ -1399,7 +1407,10 @@ export function useAppFlow() {
     restaurantCandidates, restaurantSearchStatus, requestRestaurantSearch, refreshRestaurantResults,
     savedSchedule, confirmSchedule,
     selectedMeal, openMeal, loadHistory, historyGroups, historyStatus,
+    historyGroupFilterId, openGroupHistory,
     copied, handleCopy,
-    archiveGroups: historyGroups,
+    archiveGroups: historyGroupFilterId
+      ? historyGroups.filter((group) => group.groupId === historyGroupFilterId)
+      : historyGroups,
   };
 }

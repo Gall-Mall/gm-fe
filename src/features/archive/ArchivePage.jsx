@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { Plus, Users } from 'lucide-react';
 
 export function ArchivePage({ flow }) {
-  const { archiveGroups, openMeal, goToStep, loadHistory, historyStatus, operationError } = flow;
+  const {
+    archiveGroups, openMeal, openGroupHistory, goToStep,
+    loadHistory, historyStatus, operationError,
+  } = flow;
   useEffect(() => {
     loadHistory();
     // 기록 화면에 처음 진입할 때 한 번만 서버 상태를 조회한다.
@@ -27,8 +30,14 @@ export function ArchivePage({ flow }) {
           const count = g.meals.length;
           const avg = count ? Math.round(g.meals.reduce((s, m) => s + m.score, 0) / count) : 0;
           return (
-            <section className="archive-group" key={g.group}>
-              <div className="archive-group-head">
+            <section className="archive-group" key={g.groupId || g.group}>
+              {/* 해당 그룹 식사 내역으로 이동 */}
+              <button
+                type="button"
+                className="archive-group-head"
+                aria-label={`${g.group} 해당 그룹 식사 내역으로 이동`}
+                onClick={() => openGroupHistory(g.groupId)}
+              >
                 <div className="inline-row">
                   <span className="group-icon"><Users size={20} /></span>
                   <div><h2>{g.group}</h2><p className="muted-sm">{g.city} · {g.period}</p></div>
@@ -37,7 +46,7 @@ export function ArchivePage({ flow }) {
                   <span className="pill neutral">함께한 식사 {count}회</span>
                   <span className="pill maybe">평균 적합도 {avg}%</span>
                 </div>
-              </div>
+              </button>
               <div className="meal-grid">
                 {g.meals.map((m) => (
                   <button type="button" className="meal-card" key={`${g.group}-${m.dateLabel}-${m.place}`} onClick={() => openMeal({ ...m, group: g.group })}>
