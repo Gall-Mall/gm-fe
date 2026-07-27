@@ -137,15 +137,13 @@ describe('useAppFlow 백엔드 플로우', () => {
     expect(result.current.step).toBe('recommend');
   });
 
-  it('OpenAI 추천이 3초보다 늦어도 후보가 준비되면 투표 화면을 연다', async () => {
+  it('추천 후보를 2초 간격으로 조회하다 준비되면 투표 화면을 연다', async () => {
     vi.stubEnv('VITE_API_MODE', 'real');
     vi.stubEnv('VITE_ACTIVE_GROUP_ID', 'group-1');
     window.sessionStorage.setItem('gm-access-token', 'access-token');
     createVoteSession.mockResolvedValue({ voteSessionId: 'session-slow', status: 'PREFERENCE_INPUT' });
     startMenuRecommendation.mockResolvedValue(null);
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      getMenuCandidates.mockResolvedValueOnce([]);
-    }
+    getMenuCandidates.mockResolvedValueOnce([]);
     getMenuCandidates.mockResolvedValueOnce([{
       voteCandidateId: 'candidate-slow',
       menuId: 'menu-slow',
@@ -156,11 +154,13 @@ describe('useAppFlow 백엔드 플로우', () => {
       resultStatus: 'PENDING',
       description: '느리게 준비된 추천',
     }]);
+    const timeoutSpy = vi.spyOn(window, 'setTimeout');
     const { result } = renderHook(() => useAppFlow());
 
     await act(async () => result.current.startVote());
 
-    expect(getMenuCandidates).toHaveBeenCalledTimes(7);
+    expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2000);
+    expect(getMenuCandidates).toHaveBeenCalledTimes(2);
     expect(result.current.voteStartStatus).toBe('connected');
     expect(result.current.step).toBe('recommend');
   });
@@ -442,6 +442,7 @@ describe('useAppFlow 백엔드 플로우', () => {
       .mockResolvedValueOnce([previous])
       .mockResolvedValueOnce([previous])
       .mockResolvedValue([replacement]);
+    const timeoutSpy = vi.spyOn(window, 'setTimeout');
     subscribeVoteSession.mockResolvedValue({ disconnect: vi.fn() });
     let finishRequest;
     reRecommendMenu.mockImplementation(() => new Promise((resolve) => {
@@ -464,6 +465,7 @@ describe('useAppFlow 백엔드 플로우', () => {
     });
 
     expect(result.current.menus.map((menu) => menu.id)).toEqual(['candidate-new']);
+    expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 2000);
     expect(result.current.recommending).toBe(false);
     expect(result.current.step).toBe('recommend');
   });

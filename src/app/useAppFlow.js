@@ -21,6 +21,9 @@ import { API_MODE, getAccessToken, resolveApiMode, runWithApiFallback } from '..
 import { listStores, searchStores, selectStore } from '../services/storeApi';
 import { getPreviousVoteSession, listPreviousGroups } from '../services/historyApi';
 
+const MENU_CANDIDATE_POLL_INTERVAL_MS = 2000;
+const MENU_CANDIDATE_POLL_ATTEMPTS = 30;
+
 // AI 분석은 백엔드 API 결과만 사용한다.
 async function analyzeText(kind, text) {
   const t = (text || '').trim();
@@ -755,10 +758,10 @@ export function useAppFlow() {
       await startMenuRecommendation(groupId, session.voteSessionId);
 
       let candidates = [];
-      for (let attempt = 0; attempt < 120 && candidates.length === 0; attempt += 1) {
+      for (let attempt = 0; attempt < MENU_CANDIDATE_POLL_ATTEMPTS && candidates.length === 0; attempt += 1) {
         candidates = await getMenuCandidates(groupId, session.voteSessionId);
-        if (candidates.length === 0 && attempt < 119) {
-          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        if (candidates.length === 0 && attempt < MENU_CANDIDATE_POLL_ATTEMPTS - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, MENU_CANDIDATE_POLL_INTERVAL_MS));
         }
       }
       if (candidates.length === 0) {
@@ -847,7 +850,7 @@ export function useAppFlow() {
     try {
       await reRecommendMenuApi(activeGroupId, voteSessionId);
       let candidates = [];
-      for (let attempt = 0; attempt < 120; attempt += 1) {
+      for (let attempt = 0; attempt < MENU_CANDIDATE_POLL_ATTEMPTS; attempt += 1) {
         const found = await getMenuCandidates(activeGroupId, voteSessionId);
         const hasReplacement = found.length > 0
           && found.some((candidate) => !previousCandidateIds.has(candidate.voteCandidateId));
@@ -855,8 +858,8 @@ export function useAppFlow() {
           candidates = found;
           break;
         }
-        if (attempt < 119) {
-          await new Promise((resolve) => window.setTimeout(resolve, 500));
+        if (attempt < MENU_CANDIDATE_POLL_ATTEMPTS - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, MENU_CANDIDATE_POLL_INTERVAL_MS));
         }
       }
       if (candidates.length === 0) {
