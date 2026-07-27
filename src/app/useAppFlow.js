@@ -29,6 +29,7 @@ import { getPreviousVoteSession, listPreviousGroups } from '../services/historyA
 
 const MENU_CANDIDATE_POLL_INTERVAL_MS = 2000;
 const MENU_CANDIDATE_POLL_ATTEMPTS = 30;
+const PENDING_INVITE_CODE_KEY = 'gm-pending-invite-code';
 
 // AI 분석은 백엔드 API 결과만 사용한다.
 async function analyzeText(kind, text) {
@@ -66,11 +67,20 @@ function loadState() {
   }
 }
 
-// 초대 링크 라우팅: /invite/CODE 형태면 코드 반환
+// 백엔드의 정식 /invites/CODE와 기존 /invite/CODE 링크를 모두 지원한다.
 function readInviteCode() {
   if (typeof window === 'undefined') return null;
-  const m = window.location.pathname.match(/^\/invite\/([A-Za-z0-9_-]+)/);
-  return m ? m[1] : null;
+  const match = window.location.pathname.match(/^\/invites?\/([A-Za-z0-9_-]+)/);
+  if (match) {
+    window.sessionStorage.setItem(PENDING_INVITE_CODE_KEY, match[1]);
+    return match[1];
+  }
+  return window.sessionStorage.getItem(PENDING_INVITE_CODE_KEY);
+}
+
+function clearPendingInviteCode() {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(PENDING_INVITE_CODE_KEY);
 }
 
 // OAuth 로그인 성공 후 백엔드가 회원 상태에 따라 보내는 랜딩 경로.
@@ -349,7 +359,7 @@ export function useAppFlow() {
           const token = await exchangeOAuthCodeOnce(oauthCode);
           if (cancelled) return;
           setLoggedIn(true);
-          setStep(oauthLanding || (token.redirectPath === '/onboarding' ? 'onboarding' : 'home'));
+          setStep(inviteCode ? 'invite' : (oauthLanding || (token.redirectPath === '/onboarding' ? 'onboarding' : 'home')));
         } catch (error) {
           setLoggedIn(false);
           setStep('login');
@@ -398,7 +408,7 @@ export function useAppFlow() {
 
       if (oauthLanding || oauthCode) {
         try {
-          window.history.replaceState({}, '', '/');
+          window.history.replaceState({}, '', inviteCode ? `/invites/${inviteCode}` : '/');
         } catch {
           /* noop */
         }
@@ -411,7 +421,7 @@ export function useAppFlow() {
   }, []);
 
   useEffect(() => {
-    if (!inviteCode || !getAccessToken()) return undefined;
+    if (!loggedIn || !inviteCode || !getAccessToken()) return undefined;
     let cancelled = false;
     getInvite(inviteCode)
       .then((info) => {
@@ -427,7 +437,7 @@ export function useAppFlow() {
         setOperationError(error instanceof Error ? error.message : '초대 정보를 불러오지 못했습니다.');
       });
     return () => { cancelled = true; };
-  }, [apiMode, inviteCode]);
+  }, [apiMode, inviteCode, loggedIn]);
 
   useEffect(() => {
     const el = document.scrollingElement || document.documentElement;
@@ -573,7 +583,7 @@ export function useAppFlow() {
 
   async function joinGroup() {
     if (!loggedIn) {
-      setAfterLogin('dashboard');
+      setAfterLogin('invite');
       setStep('login');
       return;
     }
@@ -592,8 +602,9 @@ export function useAppFlow() {
       });
       const joinedGroupId = result.data?.groupId;
       if (joinedGroupId) setActiveGroupId(joinedGroupId);
+      clearPendingInviteCode();
       try {
-        if (window.location.pathname.startsWith('/invite/')) window.history.replaceState({}, '', '/');
+        if (/^\/invites?\//.test(window.location.pathname)) window.history.replaceState({}, '', '/');
       } catch {
         /* noop */
       }

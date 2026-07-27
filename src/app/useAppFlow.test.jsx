@@ -90,6 +90,73 @@ afterEach(() => {
 });
 
 describe('useAppFlow 백엔드 플로우', () => {
+  it('백엔드가 생성한 복수형 초대 링크에서 초대 코드를 읽고 정보를 조회한다', async () => {
+    window.history.replaceState({}, '', '/invites/ABC123');
+    window.localStorage.setItem('galae-state-v5', JSON.stringify({ loggedIn: true, step: 'home' }));
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    getInvite.mockResolvedValue({
+      inviteCode: 'ABC123',
+      groupName: '점심 모임',
+      memberCount: 1,
+      maxMemberCount: 6,
+      joinable: true,
+    });
+
+    const { result } = renderHook(() => useAppFlow());
+
+    expect(result.current.inviteCode).toBe('ABC123');
+    expect(result.current.step).toBe('invite');
+    await waitFor(() => expect(getInvite).toHaveBeenCalledWith('ABC123'));
+  });
+
+  it('초대 링크에서 시작한 OAuth 로그인이 끝나면 같은 초대 화면으로 복귀한다', async () => {
+    window.history.replaceState({}, '', '/invites/LOGIN1');
+    const beforeLogin = renderHook(() => useAppFlow());
+    beforeLogin.unmount();
+
+    exchangeOAuthCode.mockImplementation(async () => {
+      window.sessionStorage.setItem('gm-access-token', 'issued-token');
+      return { accessToken: 'issued-token', userStatus: 'ACTIVE', redirectPath: '/home' };
+    });
+    getInvite.mockResolvedValue({
+      inviteCode: 'LOGIN1',
+      groupName: '저녁 모임',
+      memberCount: 2,
+      maxMemberCount: 6,
+      joinable: true,
+    });
+    window.history.replaceState({}, '', '/home?code=oauth-code');
+
+    const { result } = renderHook(() => useAppFlow());
+
+    await waitFor(() => expect(result.current.loggedIn).toBe(true));
+    await waitFor(() => expect(result.current.step).toBe('invite'));
+    expect(result.current.inviteCode).toBe('LOGIN1');
+    await waitFor(() => expect(getInvite).toHaveBeenCalledWith('LOGIN1'));
+  });
+
+  it('초대 가입에 성공하면 초대 경로를 제거하고 그룹 대시보드로 이동한다', async () => {
+    window.history.replaceState({}, '', '/invites/JOIN12');
+    window.localStorage.setItem('galae-state-v5', JSON.stringify({ loggedIn: true, step: 'home' }));
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    getInvite.mockResolvedValue({
+      inviteCode: 'JOIN12',
+      groupName: '가입할 모임',
+      memberCount: 1,
+      maxMemberCount: 6,
+      joinable: true,
+    });
+    joinInvite.mockResolvedValue({ groupId: 'group-joined' });
+    const { result } = renderHook(() => useAppFlow());
+
+    await act(async () => result.current.joinGroup());
+
+    expect(joinInvite).toHaveBeenCalledWith('JOIN12');
+    expect(result.current.activeGroupId).toBe('group-joined');
+    expect(result.current.step).toBe('dashboard');
+    expect(window.location.pathname).toBe('/');
+  });
+
   it('활성 그룹을 삭제하면 그룹 목록으로 이동한다', async () => {
     vi.stubEnv('VITE_ACTIVE_GROUP_ID', 'group-1');
     window.sessionStorage.setItem('gm-access-token', 'access-token');
