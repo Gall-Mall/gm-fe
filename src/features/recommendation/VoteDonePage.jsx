@@ -3,17 +3,17 @@ import { Bell, Check, ChevronRight } from 'lucide-react';
 export function VoteDonePage({ flow }) {
   const {
     goToStep, members, profile, gset, simAllVoted,
-    closeMenuVoting, allMenusVoted, isHost, roundNumber,
+    closeMenuVoting, allMenusVoted, completedMenuVoterIds = [], isHost, roundNumber,
   } = flow;
   const currentMember = { id: 'me', name: profile?.name || '나' };
   const visibleMembers = members.length > 0 ? members : [currentMember];
   const totalMembers = Math.max(gset?.memberCount || visibleMembers.length, 1);
-  // 백엔드는 멤버별 완료 명단을 제공하지 않는다. 마감 전에는 현재 사용자 완료만 표시한다.
-  const voteMembers = visibleMembers.map((m, index) => ({
+  const completedUserIds = new Set(completedMenuVoterIds);
+  const voteMembers = visibleMembers.map((m) => ({
     name: m.name,
-    done: simAllVoted || (allMenusVoted && (m.id === 'me' || index === 0)),
+    done: simAllVoted || completedUserIds.has(m.id) || (visibleMembers.length === 1 && allMenusVoted),
   }));
-  const doneCount = simAllVoted ? totalMembers : (allMenusVoted ? 1 : 0);
+  const doneCount = simAllVoted ? totalMembers : voteMembers.filter((member) => member.done).length;
   const allDone = simAllVoted;
 
   return (

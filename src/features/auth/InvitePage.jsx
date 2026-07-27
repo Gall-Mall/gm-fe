@@ -4,7 +4,10 @@ import { heroImage } from '../../data/appData';
 export function InvitePage({ flow }) {
   const { gset, members, joinGroup, goToStep, inviteCode, inviteInfo, operationError } = flow;
   const host = members.find((m) => m.role === 'host') || {};
-  const full = inviteInfo ? !inviteInfo.joinable : members.length >= (gset.memberTarget || 6);
+  const ownerName = inviteInfo?.ownerName || host.name || '방장';
+  const memberCount = inviteInfo?.memberCount ?? members.length;
+  const maxMemberCount = inviteInfo?.maxMemberCount || gset.memberTarget || 6;
+  const full = inviteInfo ? !inviteInfo.joinable : memberCount >= maxMemberCount;
   const invalidCode = Boolean(inviteCode) && !inviteInfo && Boolean(operationError);
 
   if (invalidCode || full) {
@@ -22,7 +25,7 @@ export function InvitePage({ flow }) {
               <p className="muted center">
                 {invalidCode
                   ? '링크가 만료되었거나 잘못되었어요. 방장에게 새 초대 링크를 요청해주세요.'
-                  : `이 그룹은 최대 ${gset.memberTarget || 6}명으로 이미 정원이 찼어요.`}
+                  : `이 그룹은 최대 ${maxMemberCount}명으로 이미 정원이 찼어요.`}
               </p>
               <button type="button" className="button primary full" onClick={() => goToStep('login')}>로그인 화면으로</button>
             </div>
@@ -49,7 +52,7 @@ export function InvitePage({ flow }) {
           </div>
           <div className="invite-body">
             <p className="invite-lead">
-              <strong className="accent">{host.name || '방장'}</strong>님이 <strong>{gset.name}</strong> 그룹에 초대했어요. 함께 오늘 뭐 먹을지 정해봐요.
+              <strong className="accent">{ownerName}</strong>님이 <strong>{gset.name}</strong> 그룹에 초대했어요. 함께 오늘 뭐 먹을지 정해봐요.
             </p>
             <div className="invite-facts">
               <div><MapPin size={15} /><span>{gset.location}</span></div>
@@ -57,15 +60,15 @@ export function InvitePage({ flow }) {
             </div>
             <div className="invite-members">
               <div className="avatar-row">
-                {members.slice(0, 5).map((m, i) => (
+                {(members.length ? members : [{ id: 'owner', name: ownerName }]).slice(0, 5).map((m, i) => (
                   <span className="member-avatar stacked" key={m.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>{m.name.slice(0, 1)}</span>
                 ))}
               </div>
-              <span className="muted-sm">{members.length}/6명 참여 중</span>
+              <span className="muted-sm">{memberCount}/{maxMemberCount}명 참여 중</span>
             </div>
             <button type="button" className="button primary full" onClick={joinGroup}>참여하시겠어요?</button>
             {operationError ? <p className="error-text center" role="alert">{operationError}</p> : null}
-            {full ? <p className="error-text center">인원이 가득 찼어요 (최대 6명)</p> : null}
+            {full ? <p className="error-text center">인원이 가득 찼어요 (최대 {maxMemberCount}명)</p> : null}
             <button type="button" className="link-btn muted" onClick={() => goToStep('login')}>나중에 할게요</button>
           </div>
         </div>

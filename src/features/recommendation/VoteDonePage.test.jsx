@@ -31,4 +31,25 @@ describe('VoteDonePage 1명 그룹 마감', () => {
     expect(closeMenuVoting).toHaveBeenCalledTimes(1);
     expect(goToStep).not.toHaveBeenCalledWith('roundresult');
   });
+
+  it('서버가 완료로 계산한 다른 그룹원도 완료 상태로 표시한다', () => {
+    render(<VoteDonePage flow={{
+      goToStep: vi.fn(),
+      members: [
+        { id: 'owner-id', name: '이경주', role: 'host' },
+        { id: 'member-id', name: '설승환', role: 'member' },
+      ],
+      profile: { name: '이경주' },
+      gset: { memberCount: 2 },
+      simAllVoted: false,
+      closeMenuVoting: vi.fn(),
+      allMenusVoted: true,
+      completedMenuVoterIds: ['owner-id', 'member-id'],
+      isHost: true,
+      roundNumber: 1,
+    }} />);
+
+    expect(screen.getByText('2/2명 완료')).not.toBeNull();
+    expect(screen.getAllByText('완료')).toHaveLength(2);
+  });
 });

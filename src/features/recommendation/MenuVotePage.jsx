@@ -1,10 +1,20 @@
 import { Clock, X, HelpCircle, Heart, ChevronRight } from 'lucide-react';
 
 export function MenuVotePage({ flow }) {
-  const { menus, menuVotes, myMenuVote, currentMenuIdx, setCurrentMenuIdx, voteMenu, voteKeywords, voteStartedAt, remainMs, voteClosed, votedCount, allMenusVoted, roundNumber, candidateCount, goToStep } = flow;
+  const { menus, menuVotes, myMenuVote, currentMenuIdx, setCurrentMenuIdx, voteMenu, voteKeywords, voteStartedAt, remainMs, voteClosed, votedCount, allMenusVoted, roundNumber, candidateCount, members = [], gset, completedMenuVoterIds = [], goToStep } = flow;
   const m = menus[currentMenuIdx] || menus[0];
   const v = menuVotes[m.id] || { like: 0, maybe: 0, dislike: 0 };
   const canComplete = allMenusVoted || voteClosed;
+  const memberIds = new Set(members.map(({ id }) => id));
+  const totalMembers = Math.max(members.length || gset?.memberCount || 1, 1);
+  const completedFromServer = [...new Set(completedMenuVoterIds)]
+    .filter((userId) => memberIds.size === 0 || memberIds.has(userId))
+    .length;
+  const completedMembers = Math.min(
+    totalMembers,
+    completedFromServer || (totalMembers === 1 && allMenusVoted ? 1 : 0),
+  );
+  const votingMembers = Math.max(totalMembers - completedMembers, 0);
 
   const countdown = (() => {
     if (!voteStartedAt) return null;
@@ -22,6 +32,8 @@ export function MenuVotePage({ flow }) {
             <div><span className="muted-sm">{roundNumber}차 메뉴 투표</span><h1>오늘 뭐 먹을래요?</h1></div>
             <div className="inline-row">
               {countdown ? <em className="countdown"><Clock size={12} />{countdown}</em> : null}
+              <em className="pill like">투표 완료 {completedMembers}명</em>
+              <em className="pill soft">투표 중 {votingMembers}명</em>
               {candidateCount > 0 ? <em className="pill like">최종 후보 {candidateCount}/3</em> : null}
               <em className="pill soft">{currentMenuIdx + 1}/{menus.length}</em>
             </div>

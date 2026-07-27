@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createVoteSession } from '../services/voteSessionApi';
+import { createVoteSession, getCurrentVoteSession } from '../services/voteSessionApi';
 import {
   closeMenuVote,
   getMenuCandidates,
@@ -16,7 +16,10 @@ import {
   createGroup as createGroupRequest,
   deleteGroup as deleteGroupRequest,
   getGroup,
+  listGroupMembers,
   listGroups,
+  removeGroupMember,
+  transferGroupOwner,
   updateGroup,
 } from '../services/groupApi';
 import { createInviteLink, getInvite, joinInvite } from '../services/inviteApi';
@@ -27,7 +30,10 @@ import { getPreviousVoteSession, listPreviousGroups } from '../services/historyA
 import { analyzeAllergen, analyzeFoodPreference } from '../services/preferencesApi';
 import { useAppFlow } from './useAppFlow';
 
-vi.mock('../services/voteSessionApi', () => ({ createVoteSession: vi.fn() }));
+vi.mock('../services/voteSessionApi', () => ({
+  createVoteSession: vi.fn(),
+  getCurrentVoteSession: vi.fn(),
+}));
 vi.mock('../services/authApi', () => ({
   exchangeOAuthCode: vi.fn(),
   refreshToken: vi.fn().mockResolvedValue({ accessToken: 'refreshed-token' }),
@@ -48,7 +54,14 @@ vi.mock('../services/voteSessionSocket', () => ({
   subscribeVoteSession: vi.fn(),
 }));
 vi.mock('../services/groupApi', () => ({
-  createGroup: vi.fn(), deleteGroup: vi.fn(), getGroup: vi.fn(), listGroups: vi.fn(), updateGroup: vi.fn(),
+  createGroup: vi.fn(),
+  deleteGroup: vi.fn(),
+  getGroup: vi.fn(),
+  listGroupMembers: vi.fn(),
+  listGroups: vi.fn(),
+  removeGroupMember: vi.fn(),
+  transferGroupOwner: vi.fn(),
+  updateGroup: vi.fn(),
 }));
 vi.mock('../services/inviteApi', () => ({
   createInviteLink: vi.fn(), getInvite: vi.fn(), joinInvite: vi.fn(),
@@ -72,6 +85,8 @@ beforeEach(() => {
   exchangeOAuthCode.mockResolvedValue({ accessToken: 'issued-token', userStatus: 'ACTIVE', redirectPath: '/' });
   getMe.mockResolvedValue({ name: '테스트 사용자', status: 'ACTIVE' });
   listGroups.mockResolvedValue({ content: [] });
+  listGroupMembers.mockResolvedValue([]);
+  getCurrentVoteSession.mockResolvedValue(null);
   createInviteLink.mockResolvedValue({ inviteCode: 'SERVER1', inviteUrl: 'http://localhost/invite/SERVER1' });
   analyzeAllergen.mockResolvedValue({ standardAllergens: [], customAllergens: [] });
   analyzeFoodPreference.mockResolvedValue({
@@ -147,12 +162,29 @@ describe('useAppFlow 백엔드 플로우', () => {
       joinable: true,
     });
     joinInvite.mockResolvedValue({ groupId: 'group-joined' });
+    getGroup.mockResolvedValue({
+      groupId: 'group-joined',
+      name: '가입할 모임',
+      locationAddress: '서울 강남구',
+      currentUserRole: 'MEMBER',
+      memberCount: 2,
+      maxMemberCount: 6,
+    });
+    listGroups.mockResolvedValue({ content: [{ groupId: 'group-joined', name: '가입할 모임' }] });
+    listGroupMembers.mockResolvedValue([
+      { userId: 'owner-id', name: '방장', role: 'OWNER', status: 'ACTIVE' },
+      { userId: 'me-id', name: '나', role: 'MEMBER', status: 'ACTIVE' },
+    ]);
     const { result } = renderHook(() => useAppFlow());
 
     await act(async () => result.current.joinGroup());
 
     expect(joinInvite).toHaveBeenCalledWith('JOIN12');
     expect(result.current.activeGroupId).toBe('group-joined');
+    expect(result.current.groups).toEqual([expect.objectContaining({ groupId: 'group-joined' })]);
+    expect(result.current.members.map((member) => member.name)).toEqual(['방장', '나']);
+    expect(getGroup).toHaveBeenCalledWith('group-joined');
+    expect(listGroups).toHaveBeenCalled();
     expect(result.current.step).toBe('dashboard');
     expect(window.location.pathname).toBe('/');
   });
@@ -376,6 +408,15 @@ describe('useAppFlow 백엔드 플로우', () => {
     window.history.replaceState({}, '', '/invite/JOIN1');
     getInvite.mockResolvedValue({ inviteCode: 'JOIN1', groupId: 'group-3', groupName: '가입 모임', memberCount: 2, maxMemberCount: 4, joinable: true });
     joinInvite.mockResolvedValue({ groupId: 'group-3', role: 'MEMBER', status: 'ACTIVE' });
+    getGroup.mockResolvedValue({
+      groupId: 'group-3',
+      name: '가입 모임',
+      locationAddress: '서울 강남구',
+      currentUserRole: 'MEMBER',
+      memberCount: 3,
+      maxMemberCount: 4,
+    });
+    listGroups.mockResolvedValue({ content: [{ groupId: 'group-3', name: '가입 모임' }] });
     const { result } = renderHook(() => useAppFlow());
 
     await waitFor(() => expect(getInvite).toHaveBeenCalledWith('JOIN1'));
@@ -538,6 +579,71 @@ describe('useAppFlow 백엔드 플로우', () => {
     expect(result.current.isHost).toBe(true);
   });
 
+  it('멤버가 그룹을 열면 현재 투표 세션과 멤버를 조회해 투표 화면으로 복귀한다', async () => {
+    vi.stubEnv('VITE_API_MODE', 'real');
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    getGroup.mockResolvedValue({
+      groupId: 'group-1',
+      name: '진행 중인 모임',
+      locationAddress: '서울 강남구',
+      currentUserRole: 'MEMBER',
+      searchRadiusM: 2000,
+      maxMemberCount: 4,
+    });
+    listGroupMembers.mockResolvedValue([
+      { userId: 'owner-id', name: '방장', role: 'OWNER', status: 'ACTIVE' },
+      { userId: 'member-id', name: '멤버', role: 'MEMBER', status: 'ACTIVE' },
+    ]);
+    getCurrentVoteSession.mockResolvedValue({
+      voteSessionId: 'session-current',
+      status: 'MENU_VOTING',
+    });
+    getVoteState.mockResolvedValue({
+      sessionStatus: 'MENU_VOTING',
+      menuVote: { completedUserIds: ['member-id'] },
+      candidates: [{
+        voteCandidateId: 'candidate-1',
+        menuId: 'menu-1',
+        menuName: '타코',
+        counts: { go: 0, maybe: 0, no: 0 },
+      }],
+    });
+    subscribeVoteSession.mockResolvedValue({ disconnect: vi.fn() });
+    const { result } = renderHook(() => useAppFlow());
+
+    await act(async () => result.current.selectGroup({ groupId: 'group-1' }));
+
+    expect(getCurrentVoteSession).toHaveBeenCalledWith('group-1');
+    expect(result.current.voteSessionId).toBe('session-current');
+    expect(result.current.members.map((member) => member.role)).toEqual(['host', 'member']);
+    expect(result.current.completedMenuVoterIds).toEqual(['member-id']);
+    expect(result.current.step).toBe('recommend');
+  });
+
+  it('방장 위임과 멤버 강퇴를 서버에 반영하고 멤버 목록을 다시 불러온다', async () => {
+    vi.stubEnv('VITE_API_MODE', 'real');
+    vi.stubEnv('VITE_ACTIVE_GROUP_ID', 'group-1');
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    transferGroupOwner.mockResolvedValue(null);
+    removeGroupMember.mockResolvedValue(null);
+    listGroupMembers
+      .mockResolvedValueOnce([
+        { userId: 'member-id', name: '새 방장', role: 'OWNER', status: 'ACTIVE' },
+      ])
+      .mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useAppFlow());
+
+    await act(async () => result.current.delegateHost('member-id'));
+    expect(transferGroupOwner).toHaveBeenCalledWith('group-1', 'member-id');
+    expect(result.current.members).toEqual([
+      expect.objectContaining({ id: 'member-id', role: 'host' }),
+    ]);
+
+    await act(async () => result.current.kickMember('member-id'));
+    expect(removeGroupMember).toHaveBeenCalledWith('group-1', 'member-id');
+    expect(result.current.members).toEqual([]);
+  });
+
   it('투표 WebSocket 이벤트를 받으면 REST 기준 상태를 다시 동기화한다', async () => {
     vi.stubEnv('VITE_API_MODE', 'real');
     vi.stubEnv('VITE_ACTIVE_GROUP_ID', 'group-1');
@@ -586,6 +692,41 @@ describe('useAppFlow 백엔드 플로우', () => {
 
     unmount();
     expect(disconnect).toHaveBeenCalled();
+  });
+
+  it('투표 완료 화면에서는 다른 멤버의 투표 갱신 이벤트가 와도 투표 화면으로 돌아가지 않는다', async () => {
+    vi.stubEnv('VITE_API_MODE', 'real');
+    vi.stubEnv('VITE_ACTIVE_GROUP_ID', 'group-1');
+    window.sessionStorage.setItem('gm-access-token', 'access-token');
+    createVoteSession.mockResolvedValue({ voteSessionId: 'session-1' });
+    startMenuRecommendation.mockResolvedValue(null);
+    getMenuCandidates.mockResolvedValue([{
+      voteCandidateId: 'candidate-1', menuId: 'menu-1', menuName: '타코',
+      counts: { go: 0, maybe: 0, no: 0 },
+    }]);
+    getVoteState.mockResolvedValue({
+      sessionStatus: 'MENU_VOTING',
+      menuVote: { completedUserIds: ['member-id'] },
+      candidates: [{
+        voteCandidateId: 'candidate-1', menuId: 'menu-1', menuName: '타코',
+        counts: { go: 1, maybe: 0, no: 0 },
+      }],
+    });
+    let socketEvent;
+    subscribeVoteSession.mockImplementation(async (_sessionId, onEvent) => {
+      socketEvent = onEvent;
+      return { disconnect: vi.fn() };
+    });
+    const { result } = renderHook(() => useAppFlow());
+
+    await act(async () => result.current.startVote());
+    act(() => result.current.goToStep('votedone'));
+    expect(result.current.step).toBe('votedone');
+
+    await act(async () => socketEvent({ type: 'MENU_VOTE_UPDATED' }));
+
+    expect(result.current.step).toBe('votedone');
+    expect(result.current.completedMenuVoterIds).toEqual(['member-id']);
   });
 
   it('실제 최종 투표·방장 선택·재추천을 백엔드에 반영한다', async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { menuMaster, menus } from '../data/appData';
-import { createVoteSession } from '../services/voteSessionApi';
+import { createVoteSession, getCurrentVoteSession } from '../services/voteSessionApi';
 import {
   closeMenuVote,
   getMenuCandidates,
@@ -16,7 +16,10 @@ import {
   createGroup as createGroupApi,
   deleteGroup as deleteGroupRequest,
   getGroup,
+  listGroupMembers,
   listGroups,
+  removeGroupMember,
+  transferGroupOwner,
   updateGroup,
 } from '../services/groupApi';
 import { createInviteLink, getInvite, joinInvite } from '../services/inviteApi';
@@ -133,6 +136,14 @@ function backendGroupToSettings(group) {
     memberCount: group.memberCount || 1,
     lat: group.latitude,
     lng: group.longitude,
+  };
+}
+
+function backendMemberToView(member) {
+  return {
+    ...member,
+    id: member.userId,
+    role: member.role === 'OWNER' ? 'host' : 'member',
   };
 }
 
@@ -340,6 +351,7 @@ export function useAppFlow() {
   const [serverMenus, setServerMenus] = useState([]);
   const [serverSessionStatus, setServerSessionStatus] = useState(null);
   const [finalMenuVote, setFinalMenuVote] = useState(null);
+  const [completedMenuVoterIds, setCompletedMenuVoterIds] = useState([]);
 
   const tick = useRef(null);
   const voteSessionConnection = useRef(null);
@@ -430,7 +442,10 @@ export function useAppFlow() {
         setGset((current) => ({
           ...current,
           name: info.groupName || current.name,
+          location: info.locationAddress || current.location,
+          recTime: info.recommendationTime || current.recTime,
           memberTarget: info.maxMemberCount || current.memberTarget,
+          memberCount: info.memberCount ?? current.memberCount,
         }));
       })
       .catch((error) => {
@@ -601,25 +616,65 @@ export function useAppFlow() {
         realAction: () => joinInvite(inviteCode),
       });
       const joinedGroupId = result.data?.groupId;
-      if (joinedGroupId) setActiveGroupId(joinedGroupId);
+      if (joinedGroupId) {
+        setActiveGroupId(joinedGroupId);
+        setStep('dashboard');
+      }
       clearPendingInviteCode();
       try {
         if (/^\/invites?\//.test(window.location.pathname)) window.history.replaceState({}, '', '/');
       } catch {
         /* noop */
       }
-      setStep('dashboard');
+      if (!joinedGroupId) {
+        setStep('dashboard');
+        return;
+      }
+      try {
+        const [detail, groupPage, groupMembers, currentSession] = await Promise.all([
+          getGroup(joinedGroupId),
+          listGroups(),
+          listGroupMembers(joinedGroupId),
+          getCurrentVoteSession(joinedGroupId),
+        ]);
+        setGset(backendGroupToSettings(detail));
+        setIsHost(detail.currentUserRole === 'OWNER');
+        setGroups((groupPage.content || []).map(backendGroupToView));
+        setMembers(groupMembers.map(backendMemberToView));
+        if (currentSession) {
+          await resumeVoteSession(joinedGroupId, currentSession.voteSessionId);
+        }
+      } catch (error) {
+        setOperationError(error instanceof Error
+          ? `그룹에는 참여했지만 최신 정보를 불러오지 못했습니다. ${error.message}`
+          : '그룹에는 참여했지만 최신 정보를 불러오지 못했습니다.');
+      }
     } catch (error) {
       setOperationError(error instanceof Error ? error.message : '그룹에 참여하지 못했습니다.');
     }
   }
 
-  function delegateHost(id) {
-    setMembers((cur) => cur.map((m) => ({ ...m, role: m.role === 'host' ? 'member' : m.id === id ? 'host' : m.role })));
-    setIsHost(false);
+  async function delegateHost(id) {
+    const groupId = activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID;
+    try {
+      await transferGroupOwner(groupId, id);
+      const groupMembers = await listGroupMembers(groupId);
+      setMembers(groupMembers.map(backendMemberToView));
+      setIsHost(false);
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '방장을 위임하지 못했습니다.');
+    }
   }
-  function kickMember(id) {
-    setMembers((cur) => cur.filter((m) => m.id !== id));
+
+  async function kickMember(id) {
+    const groupId = activeGroupId || import.meta.env.VITE_ACTIVE_GROUP_ID;
+    try {
+      await removeGroupMember(groupId, id);
+      const groupMembers = await listGroupMembers(groupId);
+      setMembers(groupMembers.map(backendMemberToView));
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : '멤버를 강퇴하지 못했습니다.');
+    }
   }
 
   function applyLocalGroup(group = null) {
@@ -701,15 +756,24 @@ export function useAppFlow() {
     setActiveGroupId(groupId || null);
     if (groupId && getAccessToken()) {
       try {
-        const detail = await getGroup(groupId);
+        const [detail, groupMembers, currentSession] = await Promise.all([
+          getGroup(groupId),
+          listGroupMembers(groupId),
+          getCurrentVoteSession(groupId),
+        ]);
         setGset(backendGroupToSettings(detail));
         setIsHost(detail.currentUserRole === 'OWNER');
+        setMembers(groupMembers.map(backendMemberToView));
+        setStep('dashboard');
+        if (currentSession) {
+          await resumeVoteSession(groupId, currentSession.voteSessionId);
+        }
       } catch (error) {
         setOperationError(error instanceof Error ? error.message : '그룹 정보를 불러오지 못했습니다.');
         return;
       }
     }
-    setStep('dashboard');
+    if (!groupId || !getAccessToken()) setStep('dashboard');
   }
 
   async function saveGroupSettings() {
@@ -784,6 +848,7 @@ export function useAppFlow() {
     const mappedMenus = (state.candidates || []).map(backendCandidateToMenu);
     setServerSessionStatus(state.sessionStatus || null);
     setFinalMenuVote(state.finalMenuVote || null);
+    setCompletedMenuVoterIds(state.menuVote?.completedUserIds || []);
     if (mappedMenus.length > 0) {
       setServerMenus(mappedMenus);
       setRoundIds(mappedMenus.map((menu) => menu.id));
@@ -807,6 +872,26 @@ export function useAppFlow() {
     }
     if (state.sessionStatus === 'COMPLETED') setStep('schedule');
     return state;
+  }
+
+  async function resumeVoteSession(groupId, sessionId) {
+    const accessToken = getAccessToken();
+    setVoteSessionId(sessionId);
+    setVoteStartStatus('connecting');
+    voteSessionConnection.current?.disconnect();
+    voteSessionConnection.current = await subscribeVoteSession(
+      sessionId,
+      (event) => {
+        setLastVoteSessionEvent(event);
+        return syncVoteState(groupId, sessionId).catch((error) => {
+          setVoteStartError(error instanceof Error ? error.message : '투표 상태를 동기화하지 못했습니다.');
+        });
+      },
+      { accessToken },
+    );
+    const state = await syncVoteState(groupId, sessionId);
+    if (state?.sessionStatus === 'MENU_VOTING') setStep('recommend');
+    setVoteStartStatus('connected');
   }
 
   async function startVote() {
@@ -1108,6 +1193,9 @@ export function useAppFlow() {
         }));
         setMyMenuVote((current) => ({ ...current, [m.id]: choice }));
         if (!had) setCurrentMenuIdx((index) => Math.min(recMenus.length - 1, index + 1));
+        if (allMenusVoted || (!had && votedCount + 1 === recMenus.length)) {
+          await syncVoteState(activeGroupId, voteSessionId);
+        }
       } catch (error) {
         setVoteStartError(error instanceof Error ? error.message : '메뉴 투표를 저장하지 못했습니다.');
       }
@@ -1428,7 +1516,7 @@ export function useAppFlow() {
     deleteActiveGroup, groupDeleteStatus,
     voteLimitMin, setVoteLimitMin, voteStartedAt, startVote, remainMs, voteClosed,
     voteSessionId, voteStartStatus, voteStartError, lastVoteSessionEvent,
-    serverSessionStatus, finalMenuVote, syncVoteState,
+    serverSessionStatus, finalMenuVote, completedMenuVoterIds, syncVoteState,
     voteKeywords, addVoteKeyword, removeVoteKeyword,
     menus: recMenus, excludedMenus, menuVotes, myMenuVote, currentMenuIdx, setCurrentMenuIdx, voteMenu,
     votedCount, allMenusVoted,

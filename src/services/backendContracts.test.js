@@ -1,6 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exchangeOAuthCode } from './authApi';
-import { createGroup, deleteGroup, getGroup, listGroups, updateGroup } from './groupApi';
+import {
+  createGroup,
+  deleteGroup,
+  getGroup,
+  listGroupMembers,
+  listGroups,
+  removeGroupMember,
+  transferGroupOwner,
+  updateGroup,
+} from './groupApi';
+import { getCurrentVoteSession } from './voteSessionApi';
 import { createInviteLink, getInvite, joinInvite } from './inviteApi';
 import {
   getFoodSettings,
@@ -103,6 +113,31 @@ describe('backend REST contracts', () => {
       [`${BASE}/api/groups/group-id`, 'PUT'],
       [`${BASE}/api/groups/group-id`, 'DELETE'],
     ]);
+  });
+
+  it('그룹 멤버 조회·방장 위임·강퇴 API 계약을 사용한다', async () => {
+    const fetcher = successfulFetcher();
+
+    await listGroupMembers('group-id', { baseUrl: BASE, fetcher });
+    await transferGroupOwner('group-id', 'member-id', { baseUrl: BASE, fetcher });
+    await removeGroupMember('group-id', 'member-id', { baseUrl: BASE, fetcher });
+
+    expect(fetcher.mock.calls.map(([url, options]) => [url, options.method, options.body])).toEqual([
+      [`${BASE}/api/groups/group-id/members`, 'GET', undefined],
+      [`${BASE}/api/groups/group-id/owner`, 'PATCH', JSON.stringify({ userId: 'member-id' })],
+      [`${BASE}/api/groups/group-id/members/member-id`, 'DELETE', undefined],
+    ]);
+  });
+
+  it('그룹의 현재 진행 중인 투표 세션 조회 API 계약을 사용한다', async () => {
+    const fetcher = successfulFetcher({ voteSessionId: 'session-id', status: 'MENU_VOTING' });
+
+    await getCurrentVoteSession('group-id', { baseUrl: BASE, fetcher });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      `${BASE}/api/groups/group-id/vote-sessions/current`,
+      expect.objectContaining({ method: 'GET' }),
+    );
   });
 
   it('초대 생성·조회·가입 API 계약을 사용한다', async () => {
