@@ -1,14 +1,20 @@
 import { Bell, Check, ChevronRight } from 'lucide-react';
 
 export function VoteDonePage({ flow }) {
-  const { goToStep, members, simAllVoted, closeMenuVoting, allMenusVoted, isHost, roundNumber } = flow;
-  // 내 완료 = 모든 메뉴 투표 완료. 다른 멤버는 방장이 마감(simAllVoted)하면 완료 처리.
-  const voteMembers = members.map((m) => ({
+  const {
+    goToStep, members, profile, gset, simAllVoted,
+    closeMenuVoting, allMenusVoted, isHost, roundNumber,
+  } = flow;
+  const currentMember = { id: 'me', name: profile?.name || '나' };
+  const visibleMembers = members.length > 0 ? members : [currentMember];
+  const totalMembers = Math.max(gset?.memberCount || visibleMembers.length, 1);
+  // 백엔드는 멤버별 완료 명단을 제공하지 않는다. 마감 전에는 현재 사용자 완료만 표시한다.
+  const voteMembers = visibleMembers.map((m, index) => ({
     name: m.name,
-    done: m.id === 'me' ? allMenusVoted : simAllVoted,
+    done: simAllVoted || (allMenusVoted && (m.id === 'me' || index === 0)),
   }));
-  const doneCount = voteMembers.filter((m) => m.done).length;
-  const allDone = doneCount === voteMembers.length;
+  const doneCount = simAllVoted ? totalMembers : (allMenusVoted ? 1 : 0);
+  const allDone = simAllVoted;
 
   return (
     <main className="screen page center-narrow">
@@ -41,9 +47,14 @@ export function VoteDonePage({ flow }) {
           <button type="button" className="button primary full" onClick={() => goToStep('roundresult')}>라운드 결과 보기<ChevronRight size={17} /></button>
         ) : (
           <>
-            <div className="waiting"><span className="dot" />다른 멤버들의 투표를 기다리고 있어요</div>
-            {isHost ? (
-              <button type="button" className="button ghost full" onClick={closeMenuVoting}>남은 멤버 투표 마감하기 (방장)</button>
+            <div className="waiting">
+              <span className="dot" />
+              {totalMembers === 1 ? '투표를 마감하면 결과를 확인할 수 있어요' : '다른 멤버들의 투표를 기다리고 있어요'}
+            </div>
+            {isHost && allMenusVoted ? (
+              <button type="button" className="button primary full" onClick={closeMenuVoting}>투표 마감하고 라운드 결과 보기<ChevronRight size={17} /></button>
+            ) : isHost ? (
+              <button type="button" className="button ghost full" onClick={closeMenuVoting}>현재 응답으로 투표 마감하기 (방장)</button>
             ) : null}
           </>
         )}

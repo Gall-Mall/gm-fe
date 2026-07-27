@@ -14,6 +14,10 @@ import {
 
   submitMenuVote,
 } from './menuCandidateApi';
+import * as menuCandidateApi from './menuCandidateApi';
+import * as storeApi from './storeApi';
+import * as historyApi from './historyApi';
+import { analyzeFoodPreference } from './preferencesApi';
 
 const BASE = 'http://localhost:8080';
 
@@ -56,6 +60,30 @@ describe('backend REST contracts', () => {
       [`${BASE}/api/users/me/food-settings`, 'GET'],
       [`${BASE}/api/users/me/food-settings`, 'PUT'],
     ]);
+  });
+
+  it('음식 취향 분석에 입력 극성을 함께 전송한다', async () => {
+    const fetcher = successfulFetcher({
+      matchedMenus: [],
+      matchedCategories: [],
+      unmatchedText: '',
+    });
+
+    await analyzeFoodPreference('면요리는 싫고 국물은 좋아요', 'EXCLUDE', {
+      baseUrl: BASE,
+      fetcher,
+    });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      `${BASE}/api/users/me/food-preferences/analyze`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          text: '면요리는 싫고 국물은 좋아요',
+          polarity: 'EXCLUDE',
+        }),
+      }),
+    );
   });
 
   it('그룹 목록·생성·상세·수정 API 계약을 사용한다', async () => {
@@ -103,8 +131,56 @@ describe('backend REST contracts', () => {
     expect(calls).toEqual([
       [`${BASE}/api/groups/group-id/vote-sessions/session-id/recommendations`, 'POST', undefined],
       [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates`, 'GET', undefined],
-      [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates/candidate-id/vote`, 'POST', JSON.stringify({ choice: 'GO' })],
+      [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates/candidate-id/vote`, 'PUT', JSON.stringify({ choice: 'GO' })],
       [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates/close`, 'PUT', undefined],
+    ]);
+  });
+
+  it('최종 메뉴 투표·방장 선택·재추천 API 계약을 사용한다', async () => {
+    const fetcher = successfulFetcher();
+    const ids = ['group-id', 'session-id'];
+
+    await menuCandidateApi.submitFinalMenuVote(...ids, 'candidate-id', { baseUrl: BASE, fetcher });
+    await menuCandidateApi.selectFinalMenu(...ids, 'candidate-id', { baseUrl: BASE, fetcher });
+    await menuCandidateApi.reRecommendMenu(...ids, { baseUrl: BASE, fetcher });
+
+    expect(fetcher.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+      [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates/candidate-id/final-vote`, 'PUT'],
+      [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates/candidate-id/final-selection`, 'PUT'],
+      [`${BASE}/api/groups/group-id/vote-sessions/session-id/menu-candidates/re-recommend`, 'PUT'],
+    ]);
+  });
+
+  it('식당 검색·조회·확정 API 계약을 사용한다', async () => {
+    const fetcher = successfulFetcher();
+    const searchRequest = {
+      voteSessionId: 'session-id',
+      keyword: '삼겹살',
+      longitude: 127,
+      latitude: 37.5,
+      radiusM: 1000,
+    };
+
+    await storeApi.searchStores(searchRequest, { baseUrl: BASE, fetcher });
+    await storeApi.listStores('group-id', 'session-id', { baseUrl: BASE, fetcher });
+    await storeApi.selectStore('group-id', 'session-id', 'place/id', { baseUrl: BASE, fetcher });
+
+    expect(fetcher.mock.calls.map(([url, options]) => [url, options.method, options.body])).toEqual([
+      [`${BASE}/api/stores/search`, 'POST', JSON.stringify(searchRequest)],
+      [`${BASE}/api/groups/group-id/vote-sessions/session-id/stores`, 'GET', undefined],
+      [`${BASE}/api/groups/group-id/vote-sessions/session-id/stores/place%2Fid/selection`, 'PUT', undefined],
+    ]);
+  });
+
+  it('지난 기록 목록·상세 API 계약을 사용한다', async () => {
+    const fetcher = successfulFetcher();
+
+    await historyApi.listPreviousGroups({ baseUrl: BASE, fetcher });
+    await historyApi.getPreviousVoteSession('session-id', { baseUrl: BASE, fetcher });
+
+    expect(fetcher.mock.calls.map(([url, options]) => [url, options.method])).toEqual([
+      [`${BASE}/api/users/me/previous-groups`, 'GET'],
+      [`${BASE}/api/users/me/previous-vote-sessions/session-id`, 'GET'],
     ]);
   });
 });

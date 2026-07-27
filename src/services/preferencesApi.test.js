@@ -63,7 +63,7 @@ describe('analyzeFoodPreference', () => {
       }),
     });
 
-    const result = await analyzeFoodPreference('한식 좋아하고 매콤한 국물 좋아요', {
+    const result = await analyzeFoodPreference('  한식 좋아하고 매콤한 국물 좋아요  ', 'LIKE', {
       baseUrl: 'http://localhost:8080',
       fetcher,
     });
@@ -72,6 +72,10 @@ describe('analyzeFoodPreference', () => {
       'http://localhost:8080/api/users/me/food-preferences/analyze',
       expect.objectContaining({ method: 'POST' }),
     );
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({
+      text: '한식 좋아하고 매콤한 국물 좋아요',
+      polarity: 'LIKE',
+    });
     expect(result).toEqual({
       matchedCategories: [{ id: 'c1', name: '한식' }],
       unmatchedText: '매콤한 국물',

@@ -346,7 +346,23 @@ a:hover { color: var(--ink); }
 
 /* ---------- Restaurant search / results ---------- */
 .rest-list, .alt-list { display: grid; gap: 12px; }
-.rest-row { display: flex; align-items: center; gap: 14px; padding: 16px; }
+.rest-list-panel { padding: 0; overflow: hidden; }
+.rest-list-panel .rest-list {
+  max-height: min(300px, 36vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  gap: 0;
+  scrollbar-gutter: stable;
+}
+.rest-list-panel .rest-row + .rest-row { border-top: 1px solid var(--line); }
+.rest-row { padding: 0; overflow: hidden; }
+.rest-list-panel .rest-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.rest-focus-row { width: 100%; color: inherit; font: inherit; text-align: left; }
+.rest-focus-row.is-focused { background: var(--like-bg); box-shadow: inset 3px 0 0 var(--amber); }
+.rest-row-select { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.rest-detail-link { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 72px; padding: 8px 10px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--amber-deep); font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.rest-detail-link:hover { background: var(--like-bg); }
+.rest-list-panel .rest-thumb { width: 44px; height: 44px; }
 .rest-thumb { width: 56px; height: 56px; flex: none; border-radius: 10px; background-size: cover; background-position: center; }
 .rest-thumb.sm { width: 44px; height: 44px; }
 .rest-info { flex: 1; min-width: 0; }
@@ -385,14 +401,31 @@ a:hover { color: var(--ink); }
 .meal-hero-text span { font-size: 12px; font-weight: 800; opacity: .92; }
 .meal-hero-text h1 { margin: 4px 0 0; font-size: 30px; font-weight: 900; letter-spacing: -.01em; }
 .meal-hero-text p { margin: 4px 0 0; font-size: 13px; opacity: .92; }
-.meal-detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
-.vote-rows { display: grid; gap: 12px; }
-.vote-rows .bar-like { background: var(--amber); display: block; height: 100%; border-radius: inherit; }
-.vote-rows .bar-maybe { background: #e0b874; display: block; height: 100%; border-radius: inherit; }
-.vote-rows .bar-dislike { background: var(--taupe); display: block; height: 100%; border-radius: inherit; }
-.meal-side { display: grid; gap: 14px; }
 .mini-card { padding: 20px; }
-.rating { display: block; margin-top: 4px; color: var(--gold); font-size: 20px; font-weight: 900; }
+.history-candidates-card { margin-top: 18px; padding: 26px; }
+.history-candidates-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.history-candidates-head h2 { margin: 8px 0 0; }
+.history-candidates-head > span { color: var(--muted); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.history-candidate-list { display: grid; gap: 12px; }
+.history-candidate { display: grid; grid-template-columns: 88px 1fr; gap: 16px; padding: 16px; border: 1px solid var(--line-soft); border-radius: 14px; background: #fffdf9; }
+.history-candidate.is-selected { border-color: var(--amber); box-shadow: inset 3px 0 0 var(--amber); }
+.history-candidate-image { display: grid; place-items: center; min-height: 88px; border-radius: 11px; background: var(--like-bg) center / cover no-repeat; font-size: 28px; }
+.history-candidate-body { min-width: 0; }
+.history-candidate-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.history-candidate-title h3 { margin: 0; font-size: 17px; }
+.history-candidate-title div > span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.history-candidate-title > strong { padding: 5px 9px; border-radius: 999px; background: var(--amber); color: var(--ink); font-size: 11px; white-space: nowrap; }
+.history-candidate-votes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.candidate-vote > div { display: grid; grid-template-columns: 1fr auto auto; align-items: baseline; gap: 5px; margin-bottom: 6px; }
+.candidate-vote span { color: var(--muted); font-size: 11px; font-weight: 800; }
+.candidate-vote strong { font-size: 12px; }
+.candidate-vote em { color: var(--muted); font-size: 10px; font-style: normal; font-weight: 700; }
+.candidate-vote-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: #eee6d8; }
+.candidate-vote-track i { display: block; height: 100%; border-radius: inherit; background: var(--taupe); }
+.candidate-vote-like .candidate-vote-track i { background: var(--amber); }
+.candidate-vote-maybe .candidate-vote-track i { background: #d6a94f; }
+.candidate-vote-dislike .candidate-vote-track i { background: var(--taupe); }
+.history-candidates-empty { margin: 0; padding: 28px; border-radius: 12px; background: var(--cream-2); color: var(--muted); text-align: center; font-size: 13px; font-weight: 700; }
 
 /* ---------- Modal ---------- */
 .modal-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: rgba(42,36,32,.5); backdrop-filter: blur(3px); }
@@ -445,6 +478,23 @@ a:hover { color: var(--ink); }
 /* ---------- New: map card / markers ---------- */
 .map-card .map-holder { margin-top: 4px; }
 .map-pin-label { display: inline-block; transform: translateX(-50%); padding: 2px 7px; border-radius: 6px; background: rgba(42,36,32,.9); color: #fff; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.restaurant-map-shell { position: relative; margin-top: 4px; overflow: hidden; border-radius: 10px; }
+.restaurant-map-shell .map-holder { margin-top: 0; }
+.map-overlay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: #fffdf8; }
+.map-overlay-head strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-overlay-head button, .map-overlay-head a { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 30px; padding: 5px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--amber-deep); font-family: inherit; font-size: 12px; font-weight: 800; text-decoration: none; cursor: pointer; }
+.map-overlay-head button:hover, .map-overlay-head a:hover { background: var(--like-bg); }
+.map-overlay-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+.restaurant-detail-modal { width: min(900px, 100%); height: min(720px, 80vh); }
+.restaurant-detail-frame { width: 100%; flex: 1; min-height: 0; border: 0; background: #fff; }
+.map-cluster-panel { position: absolute; left: 12px; bottom: 12px; z-index: 4; width: min(350px, calc(100% - 24px)); max-height: 58%; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 10px 28px rgba(42,36,32,.2); }
+.map-cluster-list { max-height: 150px; overflow-y: auto; }
+.map-cluster-list button { display: grid; gap: 2px; width: 100%; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--line-soft); background: #fff; color: var(--ink); font-family: inherit; text-align: left; cursor: pointer; }
+.map-cluster-list button:last-child { border-bottom: 0; }
+.map-cluster-list button:hover { background: var(--like-bg); }
+.map-cluster-list span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.meal-map-card { margin-top: 18px; }
+.meal-map-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
 
 /* ---------- New: saved schedule ---------- */
 .saved-schedule { border-color: var(--amber); }
@@ -466,7 +516,10 @@ a:hover { color: var(--ink); }
 
 @media (max-width: 720px) {
   .login-inner { grid-template-columns: 1fr; }
-  .quick-grid, .meal-grid, .reason-grid, .meal-detail-grid { grid-template-columns: 1fr; }
+  .quick-grid, .meal-grid, .reason-grid { grid-template-columns: 1fr; }
+  .history-candidate { grid-template-columns: 64px 1fr; gap: 12px; }
+  .history-candidate-image { min-height: 64px; }
+  .history-candidate-votes { grid-template-columns: 1fr; }
 
   /* 헤더 과밀 완화: 상단 네비/보조 아이콘 숨기고 하단 네비 노출 */
   .site-header { grid-template-columns: 1fr auto; padding: 0 16px; gap: 12px; min-height: 56px; }

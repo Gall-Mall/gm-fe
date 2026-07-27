@@ -5,7 +5,7 @@ function startOAuth(provider) {
 }
 
 export function LoginPage({ flow }) {
-  const { doLogin, goToStep, afterLogin } = flow;
+  const { goToStep, afterLogin } = flow;
   return (
     <div className="screen login-screen">
       <div className="login-inner">
@@ -26,7 +26,6 @@ export function LoginPage({ flow }) {
           <h2>지금 시작하기</h2>
           <p className="muted">소셜 계정으로 바로 그룹에 참여하세요.</p>
           <div className="login-buttons">
-            <button type="button" className="social kakao" onClick={doLogin}>카카오로 시작하기</button>
             <button type="button" className="social naver" onClick={() => startOAuth('naver')}>네이버로 시작하기</button>
           </div>
           {afterLogin === 'dashboard' ? (

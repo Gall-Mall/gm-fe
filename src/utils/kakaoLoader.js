@@ -1,4 +1,4 @@
-// 카카오 지도 SDK 로더. services 라이브러리(장소검색·주소변환) 포함.
+// 카카오 지도 SDK 로더. 장소검색·주소변환과 다중 마커 묶음을 함께 지원한다.
 // 최초 1회만 스크립트를 주입하고, 이후 호출은 같은 Promise를 재사용한다.
 const KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
 
@@ -25,7 +25,7 @@ export function ensureKakao() {
     const s = document.createElement('script');
     s.async = true;
     s.setAttribute('data-kakao-sdk', '');
-    s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KEY}&libraries=services&autoload=false`;
+    s.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KEY}&libraries=services,clusterer&autoload=false`;
     s.onload = onReady;
     s.onerror = () => reject(new Error('카카오 지도 SDK 로드 실패'));
     document.head.appendChild(s);

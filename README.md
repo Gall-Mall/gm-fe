@@ -68,12 +68,14 @@ vite build --emptyOutDir false
 로컬 환경 변수 예시는 `.env.example`을 기준으로 합니다.
 
 ```bash
+VITE_API_MODE=real
 VITE_API_BASE_URL=
-VITE_USE_MOCK=true
+VITE_BACKEND_URL=http://localhost:8080
 ```
 
-- `VITE_API_BASE_URL`을 비워두면 현재 mock/fallback 동작을 사용합니다.
-- `VITE_USE_MOCK`은 향후 API 전환을 위한 옵션이며, 현재 코드에서는 아직 직접 사용하지 않습니다.
+- 앱 실행 흐름은 실제 백엔드 API만 사용하며 API 실패를 mock 데이터로 대체하지 않습니다.
+- `VITE_API_BASE_URL`을 비워두면 Vite의 `/api`, `/ws` 프록시를 사용합니다.
+- `VITE_BACKEND_URL`은 로컬 프록시가 전달할 백엔드 주소입니다.
 
 ## 프로젝트 구조
 
